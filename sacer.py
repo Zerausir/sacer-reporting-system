@@ -10,7 +10,7 @@ import warnings
 
 """Change server and download route"""
 server_route = '//arc-uio-nas02/UNIDAD/CZ2/SACER/DATOS'
-download_route = 'C:/Users/ivan.suarez/Downloads'
+download_route = 'C:/Users/isuarez/Downloads'
 
 """This code only produce a warning that pop-up when using matplotlib for annotations, that is the reason why it is
 disable on purpose. In case a change is made in the code, comment this line to see any other new warning"""
