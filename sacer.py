@@ -8,9 +8,21 @@ import datetime
 import matplotlib.pyplot as plt
 import warnings
 
-"""Change server and download route"""
+"""Select server and download routes"""
 server_route = '//arc-uio-nas02/UNIDAD/CZ2/SACER/DATOS'
 download_route = 'C:/Users/isuarez/Downloads'
+
+"""Name of the files with the data for suspension authorizations and the broadcasting stations"""
+file_aut_sus = 'SUSPENSIÓN EMISIONES-VERIFICACIÓN REINICIO OPERACIÓN 2022 RTV.xlsx'
+file_estaciones = 'TX.xlsx'
+
+"""Columns to be selected in the data files"""
+columnasFM = ['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'FM (Hz)', 'Bandwidth (Hz)']
+columnasTV = ['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'AM (%)', 'Bandwidth (Hz)']
+columnasAM = ['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'AM (%)', 'Bandwidth (Hz)']
+columnasAUT = ['No. INGRESO ARCOTEL', 'FECHA INGRESO', 'NOMBRE ESTACIÓN', 'M/R', 'FREC / CANAL',
+               'CIUDAD PRINCIPAL COBERTURA', 'DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'No. OFICIO ARCOTEL',
+               'FECHA OFICIO', 'FECHA INICIO SUSPENSION', 'DIAS', 'ZONAL']
 
 """This code only produce a warning that pop-up when using matplotlib for annotations, that is the reason why it is
 disable on purpose. In case a change is made in the code, comment this line to see any other new warning"""
@@ -508,8 +520,6 @@ class SacerApp(tk.Frame):
 
         """DATA READING: FM and TV broadcasting cases"""
         """Specifies the names of the data columns to be used """
-        columnasFM = ['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'FM (Hz)', 'Bandwidth (Hz)']
-        columnasTV = ['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'AM (%)', 'Bandwidth (Hz)']
         df_d1 = []
         df_d2 = []
         """"_".join((Mes_inicio, str(Year1))) = "Mes_inicio_Year1", the content for join must be strings that is why
@@ -549,18 +559,15 @@ class SacerApp(tk.Frame):
                                              'Bandwidth (Hz)'])
 
         """df7: read the TX.xlsx data, convert it to a pandas dataframe and fill na with - """
-        df7 = pd.read_excel(f'{server_route}/TX.xlsx', sheet_name=sheet_name1)
+        df7 = pd.read_excel(f'{server_route}/{file_estaciones}', sheet_name=sheet_name1)
         df7 = df7.fillna('-')
-        df8 = pd.read_excel(f'{server_route}/TX.xlsx', sheet_name=sheet_name2)
+        df8 = pd.read_excel(f'{server_route}/{file_estaciones}', sheet_name=sheet_name2)
         df8 = df8.fillna('-')
 
-        """dfau1: read the data in SUSPENSIÓN EMISIONES-VERIFICACIÓN REINICIO OPERACIÓN 2022 RTV.xlsx file and convert
+        """dfau1: read the data in SUSPENSIÓN EMISIONES-VERIFICACIÓN REINICIO OPERACIÓN.xlsx file and convert
         it to a pandas dataframe"""
-        columnasAUT = ['No. INGRESO ARCOTEL', 'FECHA INGRESO', 'NOMBRE ESTACIÓN', 'M/R', 'FREC / CANAL',
-                       'CIUDAD PRINCIPAL COBERTURA', 'DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'No. OFICIO ARCOTEL',
-                       'FECHA OFICIO', 'FECHA INICIO SUSPENSION', 'DIAS', 'ZONAL']
         dfau1 = pd.read_excel(
-            f'{server_route}/SUSPENSIÓN EMISIONES-VERIFICACIÓN REINICIO OPERACIÓN 2022 RTV.xlsx',
+            f'{server_route}/{file_aut_sus}',
             skiprows=1, usecols=columnasAUT)
         dfau1 = dfau1.fillna('-')
         dfau1 = dfau1.rename(
@@ -602,7 +609,6 @@ class SacerApp(tk.Frame):
 
         """DATA READING: For the locations where AM Broadcasting can be measured."""
         if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
-            columnasAM = ['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'AM (%)', 'Bandwidth (Hz)']
             df_d3 = []
             for mes in month_year[m:n + 1]:
                 """w: read the csv file, used usecols, to list the data and pass it to a numpy array"""
@@ -624,7 +630,7 @@ class SacerApp(tk.Frame):
                                                  'Bandwidth (Hz)'])
 
             """df13: read the TX.xlsx data, convert it to a pandas dataframe and fill na with - """
-            df13 = pd.read_excel(f'{server_route}/TX.xlsx', sheet_name=sheet_name3)
+            df13 = pd.read_excel(f'{server_route}/{file_estaciones}', sheet_name=sheet_name3)
             df13 = df13.fillna('-')
 
             """DATA CLEANING"""
