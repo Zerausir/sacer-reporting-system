@@ -7,16 +7,19 @@ import numpy as np
 import datetime
 import matplotlib.pyplot as plt
 import warnings
+from dotenv import load_dotenv
 
-"""Select server and download routes"""
-server_route = '//arc-uio-nas02/UNIDAD/CZ2/SACER/DATOS'
-download_route = 'C:/Users/isuarez/Downloads'
+load_dotenv()
 
-"""Name of the files with the data for suspension authorizations and the broadcasting stations"""
-file_aut_sus = 'SUSPENSIÓN EMISIONES-VERIFICACIÓN REINICIO OPERACIÓN 2022 RTV.xlsx'
-file_estaciones = 'TX.xlsx'
+# Select server and download routes
+server_route = os.getenv('server_route')
+download_route = os.getenv('download_route')
 
-"""Columns to be selected in the data files"""
+# Name of the files with the data for suspension authorizations and the broadcasting stations
+file_aut_sus = os.getenv('file_aut_sus')
+file_estaciones = os.getenv('file_estaciones')
+
+# Columns to be selected in the data files
 columnasFM = ['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'FM (Hz)', 'Bandwidth (Hz)']
 columnasTV = ['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'AM (%)', 'Bandwidth (Hz)']
 columnasAM = ['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'AM (%)', 'Bandwidth (Hz)']
@@ -24,8 +27,8 @@ columnasAUT = ['No. INGRESO ARCOTEL', 'FECHA INGRESO', 'NOMBRE ESTACIÓN', 'M/R'
                'CIUDAD PRINCIPAL COBERTURA', 'DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'No. OFICIO ARCOTEL',
                'FECHA OFICIO', 'FECHA INICIO SUSPENSION', 'DIAS', 'ZONAL']
 
-"""This code only produce a warning that pop-up when using matplotlib for annotations, that is the reason why it is
-disable on purpose. In case a change is made in the code, comment this line to see any other new warning"""
+# This code only produce a warning that pop-up when using matplotlib for annotations, that is the reason why it is
+# disable on purpose. In case a change is made in the code, comment this line to see any other new warning
 warnings.filterwarnings('ignore')
 
 
@@ -36,14 +39,14 @@ class SacerApp(tk.Frame):
         """This is a constructor method for a class in Python. It initializes the object's internal state and is
         automatically called when an object is created."""
 
-        """Use the built-in constructor method of the tkinter module in Python. The super() function is used to call the
-        constructor of the parent class of the current class, and __init__() is the method that is called when creating 
-        a new instance of the class. In this case, master is the parameter being passed to the constructor method, which
-        is the main window object that's being created. This line of code is used to initialize an instance of a tkinter
-        widget or frame."""
+        # Use the built-in constructor method of the tkinter module in Python. The super() function is used to call the
+        # constructor of the parent class of the current class, and __init__() is the method that is called when
+        # creating a new instance of the class. In this case, master is the parameter being passed to the constructor
+        # method, which is the main window object that's being created. This line of code is used to initialize an
+        # instance of a tkinter widget or frame.
         super().__init__(master)
 
-        """Initialize all the variables"""
+        # Initialize all the variables
         self.master = master
         self.master.title("Reportes SACER")
         self.master.geometry("800x450")
@@ -342,10 +345,10 @@ class SacerApp(tk.Frame):
 
         Autorizaciones = self.Autorizaciones.get()
 
-        """Set the figure size to be used"""
+        # Set the figure size to be used
         plt.rcParams["figure.figsize"] = (20, 10)
 
-        """Declare new variables based in the initial ones"""
+        # Declare new variables based in the initial ones
         if Ciudad == 'Tulcan':
             ciu = 'TUL'
             autori = 'TULCÁN'
@@ -450,13 +453,13 @@ class SacerApp(tk.Frame):
             sheet_name1 = 'erm-l01FM'
             sheet_name2 = 'erm-l01TV'
 
-        """Get the names of the months and the years from de input dates"""
+        # Get the names of the months and the years from de input dates
         Mes_inicio = datetime.datetime.strptime(fecha_inicio, '%Y-%m-%d').strftime("%B")
         Mes_fin = datetime.datetime.strptime(fecha_fin, '%Y-%m-%d').strftime("%B")
         Year1 = datetime.datetime.strptime(fecha_inicio, '%Y-%m-%d').year
         Year2 = datetime.datetime.strptime(fecha_fin, '%Y-%m-%d').year
 
-        """Translate the names of the months to Spanish for the initial date"""
+        # Translate the names of the months to Spanish for the initial date
         if Mes_inicio == 'January':
             Mes_inicio = 'Enero'
         elif Mes_inicio == 'February':
@@ -482,7 +485,7 @@ class SacerApp(tk.Frame):
         elif Mes_inicio == 'December':
             Mes_inicio = 'Diciembre'
 
-        """Translate the names of the months to Spanish for the final date"""
+        # Translate the names of the months to Spanish for the final date
         if Mes_fin == 'January':
             Mes_fin = 'Enero'
         elif Mes_fin == 'February':
@@ -508,7 +511,7 @@ class SacerApp(tk.Frame):
         elif Mes_fin == 'December':
             Mes_fin = 'Diciembre'
 
-        """Create a vector with format "Enero_2021" for all the years in evaluation"""
+        # Create a vector with format "Enero_2021" for all the years in evaluation
         vector = []
         for year in range(int(Year1), int(Year2 + 1)):
             meses = [f"Enero_{year}", f"Febrero_{year}", f"Marzo_{year}", f"Abril_{year}", f"Mayo_{year}",
@@ -518,39 +521,40 @@ class SacerApp(tk.Frame):
             vector.append(meses)
             month_year = [num for elem in vector for num in elem]
 
-        """DATA READING: FM and TV broadcasting cases"""
-        """Specifies the names of the data columns to be used """
+        # DATA READING: FM and TV broadcasting cases
+        # Specifies the names of the data columns to be used
         df_d1 = []
         df_d2 = []
-        """"_".join((Mes_inicio, str(Year1))) = "Mes_inicio_Year1", the content for join must be strings that is why
-        str(Year1) is used"""
+        # "_".join((Mes_inicio, str(Year1))) = "Mes_inicio_Year1", the content for join must be strings that is why
+        # str(Year1) is used
         m = int(month_year.index("_".join((Mes_inicio,
                                            str(Year1)))))
         n = int(month_year.index("_".join((Mes_fin, str(Year2)))))
         for mes in month_year[m:n + 1]:
-            """u: read the csv file, used usecols, to list the data and pass it to a numpy array"""
+            # u: read the csv file, used usecols, to list the data and pass it to a numpy array
             try:
                 u = pd.read_csv(f'{server_route}/{ciu}/FM_{ciu}_{mes}.csv', engine='python',
                                 skipinitialspace=True, usecols=columnasFM, encoding='unicode_escape').to_numpy()
             except IOError:
-                """Raise if file does not exist"""
+                # Raise if file does not exist
                 u = np.full([1, 6], np.nan)
 
-            """df_d1: append(u) adds all the elements in the u lists generated by the for loop"""
+            # df_d1: append(u) adds all the elements in the u lists generated by the for loop
             df_d1.append(u)
 
             try:
                 v = pd.read_csv(f'{server_route}/{ciu}/TV_{ciu}_{mes}.csv', engine='python',
                                 skipinitialspace=True, usecols=columnasTV, encoding='unicode_escape').to_numpy()
-            except IOError:  # raise if file does not exist
+            except IOError:
+                # raise if file does not exist
                 v = np.full([1, 6], np.nan)
 
             df_d2.append(v)
 
-        """Join all the sequences of arrays in the previous df to get only one array of data"""
+        # Join all the sequences of arrays in the previous df to get only one array of data
         df_d1 = np.concatenate(df_d1)
         df_d2 = np.concatenate(df_d2)
-        """df_original1: convert numpy array df_d1 to pandas dataframe and add header"""
+        # df_original1: convert numpy array df_d1 to pandas dataframe and add header
         df_original1 = pd.DataFrame(df_d1,
                                     columns=['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'FM (Hz)',
                                              'Bandwidth (Hz)'])
@@ -558,14 +562,14 @@ class SacerApp(tk.Frame):
                                     columns=['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'AM (%)',
                                              'Bandwidth (Hz)'])
 
-        """df7: read the TX.xlsx data, convert it to a pandas dataframe and fill na with - """
+        # df7: read the TX.xlsx data, convert it to a pandas dataframe and fill na with -
         df7 = pd.read_excel(f'{server_route}/{file_estaciones}', sheet_name=sheet_name1)
         df7 = df7.fillna('-')
         df8 = pd.read_excel(f'{server_route}/{file_estaciones}', sheet_name=sheet_name2)
         df8 = df8.fillna('-')
 
-        """dfau1: read the data in SUSPENSIÓN EMISIONES-VERIFICACIÓN REINICIO OPERACIÓN.xlsx file and convert
-        it to a pandas dataframe"""
+        # dfau1: read the data in SUSPENSIÓN EMISIONES-VERIFICACIÓN REINICIO OPERACIÓN.xlsx file and convert
+        # it to a pandas dataframe
         dfau1 = pd.read_excel(
             f'{server_route}/{file_aut_sus}',
             skiprows=1, usecols=columnasAUT)
@@ -594,53 +598,53 @@ class SacerApp(tk.Frame):
             else:
                 return row['freq1']
 
-        """Create a new column in the dfau1 dataframe by using the last function def freq(row)"""
+        # Create a new column in the dfau1 dataframe by using the last function def freq(row)
         dfau1['freq'] = dfau1.apply(lambda row: freq(row), axis=1)
         dfau1 = dfau1.drop(columns=['freq1'])
 
-        """DATA CLEANING"""
-        """convert column "Tiempo" to datetime in an especific format"""
+        # DATA CLEANING
+        # convert column "Tiempo" to datetime in an especific format
         df_original1["Tiempo"] = pd.to_datetime(df_original1["Tiempo"], format='%d/%m/%Y %H:%M:%S.%f')
         df_original2["Tiempo"] = pd.to_datetime(df_original2["Tiempo"], format='%d/%m/%Y %H:%M:%S.%f')
 
-        """DATA ANALYSIS"""
+        # DATA ANALYSIS
         df1 = df_original1
         df2 = df_original2
 
-        """DATA READING: For the locations where AM Broadcasting can be measured."""
+        # DATA READING: For the locations where AM Broadcasting can be measured.
         if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
             df_d3 = []
             for mes in month_year[m:n + 1]:
-                """w: read the csv file, used usecols, to list the data and pass it to a numpy array"""
+                # w: read the csv file, used usecols, to list the data and pass it to a numpy array
                 try:
                     w = pd.read_csv(f'{server_route}/{ciu}/AM_{ciu}_{mes}.csv', engine='python',
                                     skipinitialspace=True, usecols=columnasAM, encoding='unicode_escape').to_numpy()
                 except IOError:
-                    """raise if file does not exist"""
+                    # raise if file does not exist
                     w = np.full([1, 6], np.nan)
 
-                """df_d3: append(w) adds all the elements in the w lists generated by the for loop"""
+                # df_d3: append(w) adds all the elements in the w lists generated by the for loop
                 df_d3.append(w)
 
-            """join the sequence of numpy arrays in the previous df to get only one array of data"""
+            # Join the sequence of numpy arrays in the previous df to get only one array of data
             df_d3 = np.concatenate(df_d3)
-            """df_original3: convert df_d3 to pandas dataframe and add header"""
+            # df_original3: convert df_d3 to pandas dataframe and add header
             df_original3 = pd.DataFrame(df_d3,
                                         columns=['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'AM (%)',
                                                  'Bandwidth (Hz)'])
 
-            """df13: read the TX.xlsx data, convert it to a pandas dataframe and fill na with - """
+            # df13: read the TX.xlsx data, convert it to a pandas dataframe and fill na with -
             df13 = pd.read_excel(f'{server_route}/{file_estaciones}', sheet_name=sheet_name3)
             df13 = df13.fillna('-')
 
-            """DATA CLEANING"""
-            """convert column "Tiempo" to datetime in an especific format"""
+            # DATA CLEANING
+            # convert column "Tiempo" to datetime in an especific format
             df_original3["Tiempo"] = pd.to_datetime(df_original3["Tiempo"], format='%d/%m/%Y %H:%M:%S.%f')
             df14 = df_original3
 
-        """Add HH:MM:SS to fecha_inicio and fecha_fin so the range of dates we want to show in the report is correct 
-        (reminder: the dates we enter in the form is just a string with format 2022-01-12, that is why we made this 
-        change to not lose information when we present the data at the end)"""
+        # Add HH:MM:SS to fecha_inicio and fecha_fin so the range of dates we want to show in the report is correct
+        # (reminder: the dates we enter in the form is just a string with format 2022-01-12, that is why we made this
+        # change to not lose information when we present the data at the end)
         add_string1 = ' 00:00:01'
         add_string2 = ' 23:59:59'
         fecha_inicio += add_string1
@@ -652,12 +656,12 @@ class SacerApp(tk.Frame):
             datetime_str = datetime.datetime.strptime(date_time, format)
             return datetime_str
 
-        """convert fecha_inicio and fecha_fin to datetime object"""
+        # Convert fecha_inicio and fecha_fin to datetime object
         fecha_inicio = convert(fecha_inicio)
         fecha_fin = convert(fecha_fin)
 
-        """create an empty dataframe with columns "Tiempo" and "Frecuencia (Hz)" for the dates of the month in 
-        evaluation"""
+        # Create an empty dataframe with columns "Tiempo" and "Frecuencia (Hz)" for the dates of the month in
+        # evaluation
         df3 = []
         for t in pd.date_range(start=fecha_inicio, end=fecha_fin):
             for f in df7['Frecuencia (Hz)'].tolist():
@@ -670,27 +674,27 @@ class SacerApp(tk.Frame):
                 df4.append((t, f))
         df4 = pd.DataFrame(df4, columns=('Tiempo', 'Frecuencia (Hz)'))
 
-        """concatenate real dataframe with empty dataframe to fill missing dates"""
+        # Concatenate real dataframe with empty dataframe to fill missing dates
         df5 = pd.concat([df3, df1])
 
         df6 = pd.concat([df4, df2])
 
-        """merge df5 with TX dataframe to fill TX by frequency, df9 is the dataframe that contains all the information 
-        for FM broadcasting"""
+        # Merge df5 with TX dataframe to fill TX by frequency, df9 is the dataframe that contains all the information
+        # for FM broadcasting
         df9 = df5.merge(df7, how='right', on='Frecuencia (Hz)')
-        """select data between fecha_inicio and fecha_fin and fill missing data with 0"""
+        # Select data between fecha_inicio and fecha_fin and fill missing data with 0
         df9 = df9[(df9.Tiempo >= fecha_inicio) & (df9.Tiempo <= fecha_fin)]
         df9 = df9.fillna(0)
 
-        """merge df6 with TX dataframe to fill TX by frequency, df10 is the dataframe that contains all the information 
-        for TV broadcasting"""
+        # Merge df6 with TX dataframe to fill TX by frequency, df10 is the dataframe that contains all the information
+        # for TV broadcasting
         df10 = df6.merge(df8, how='right', on='Frecuencia (Hz)')
-        """select data between fecha_inicio and fecha_fin and fill missing data with 0"""
+        # Select data between fecha_inicio and fecha_fin and fill missing data with 0
         df10 = df10[(df10.Tiempo >= fecha_inicio) & (df10.Tiempo <= fecha_fin)]
         df10 = df10.fillna(0)
 
         if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
-            """For the AM broadcasting case the procedure from line 616 to 647 is recreated"""
+            # For the AM broadcasting case the procedure from line 616 to 647 is recreated
             df15 = []
             for t in pd.date_range(start=fecha_inicio, end=fecha_fin):
                 for f in df13['Frecuencia (Hz)'].tolist():
@@ -698,16 +702,16 @@ class SacerApp(tk.Frame):
             df15 = pd.DataFrame(df15, columns=('Tiempo', 'Frecuencia (Hz)'))
             df16 = pd.concat([df15, df14])
 
-            """merge df16 with TX dataframe to fill TX by frequency, df17 is the dataframe that contains all the
-            information for AM broadcasting"""
+            # Merge df16 with TX dataframe to fill TX by frequency, df17 is the dataframe that contains all the
+            # information for AM broadcasting
             df17 = df16.merge(df13, how='right', on='Frecuencia (Hz)')
             df17 = df17[(df17.Tiempo >= fecha_inicio) & (df17.Tiempo <= fecha_fin)]
             df17 = df17.fillna(0)
 
         if Ocupacion == False and AM_Reporte_individual == False and FM_Reporte_individual == False and TV_Reporte_individual == False and Autorizaciones == False:
-            """REPORTE GENERAL"""
-            """Group the information in df9 according to the requirements for the final report: max Level and average 
-            Bandwidth per Frequency and Day (FM broadcasting)"""
+            # REPORTE GENERAL
+            # Group the information in df9 according to the requirements for the final report: max Level and average
+            # Bandwidth per Frequency and Day (FM broadcasting)
             df11 = df9.groupby(by=[
                 pd.Grouper(key='Tiempo', freq='D'),
                 pd.Grouper(key='Frecuencia (Hz)'),
@@ -719,8 +723,8 @@ class SacerApp(tk.Frame):
                 'Bandwidth (Hz)': 'mean'
             }).reset_index()
 
-            """Group the information in df10 according to the requirements for the final report: max Level per Frequency
-            and Day (TV broadcasting)"""
+            # Group the information in df10 according to the requirements for the final report: max Level per Frequency
+            # and Day (TV broadcasting)
             df12 = df10.groupby(by=[
                 pd.Grouper(key='Tiempo', freq='D'),
                 pd.Grouper(key='Frecuencia (Hz)'),
@@ -731,8 +735,8 @@ class SacerApp(tk.Frame):
                 'Level (dBµV/m)': 'max'
             }).reset_index()
 
-            """Make the pivot tables with the data structured in the way we want to show in the report
-            (FM broadcasting)"""
+            # Make the pivot tables with the data structured in the way we want to show in the report
+            # (FM broadcasting)
             df_final1 = pd.pivot_table(df11,
                                        index=[pd.Grouper(key='Tiempo')],
                                        values=['Level (dBµV/m)', 'Bandwidth (Hz)'],
@@ -740,12 +744,12 @@ class SacerApp(tk.Frame):
                                        aggfunc={'Level (dBµV/m)': max, 'Bandwidth (Hz)': np.average}).round(2)
             df_final1 = df_final1.T
             df_final3 = df_final1.replace(0, '-')
-            """Reset the index (unstack) to have the columns 'Potencia', 'BW Asignado' and 'Tiempo' in the index so we 
-            can use the flags in the columns 'Potencia' and 'BW Asignado' """
+            # Reset the index (unstack) to have the columns 'Potencia', 'BW Asignado' and 'Tiempo' in the index so we
+            # can use the flags in the columns 'Potencia' and 'BW Asignado'
             df_final3 = df_final3.reset_index()
 
-            """sorter first by 'Level (dBµV/m)' and after by 'Bandwidth (Hz)' and rename the column header as 
-            'Param' """
+            # Sorter first by 'Level (dBµV/m)' and after by 'Bandwidth (Hz)' and rename the column header as
+            # 'Param'
             sorter = ['Level (dBµV/m)', 'Bandwidth (Hz)']
             df_final3.level_0 = df_final3.level_0.astype("category")
             df_final3.level_0 = df_final3.level_0.cat.set_categories(sorter)
@@ -753,21 +757,21 @@ class SacerApp(tk.Frame):
             df_final5 = df_final3.rename(columns={'level_0': 'Param'})
 
             if Year1 == Year2 and Mes_inicio == Mes_fin:
-                """If evaluation period is just one month get the average of the values in another column named
-                'Promedio' and create a last column named 'Observaciones' """
+                # If evaluation period is just one month get the average of the values in another column named
+                # 'Promedio' and create a last column named 'Observaciones'
                 df_final5['Promedio'] = df_final5.drop(
                     ['Param', 'Frecuencia (Hz)', 'Estación', 'Potencia', 'BW Asignado'],
                     axis=1).replace('-', np.NaN).apply(lambda x: x.mean(), axis=1).round(
                     2)
                 df_final5['Observaciones'] = ''
             else:
-                """Only create a last column named 'Observaciones' """
+                # Only create a last column named 'Observaciones'
                 df_final5['Observaciones'] = ''
                 df_final5
             df_final5 = df_final5.rename(columns={'Param': 'Parámetro'}).set_index('Parámetro')
 
-            """Make the pivot tables with the data structured in the way we want to show in the report
-            (TV broadcasting)"""
+            # Make the pivot tables with the data structured in the way we want to show in the report
+            # (TV broadcasting)
             df_final2 = pd.pivot_table(df12,
                                        index=[pd.Grouper(key='Tiempo')],
                                        values=['Level (dBµV/m)'],
@@ -777,7 +781,7 @@ class SacerApp(tk.Frame):
             df_final4 = df_final2.replace(0, '-')
             df_final4 = df_final4.reset_index()
 
-            """sorter first by 'Level (dBµV/m)' and rename the column header as 'Param' """
+            # Sorter first by 'Level (dBµV/m)' and rename the column header as 'Param'
             sorter1 = ['Level (dBµV/m)']
             df_final4.level_0 = df_final4.level_0.astype("category")
             df_final4.level_0 = df_final4.level_0.cat.set_categories(sorter1)
@@ -785,8 +789,8 @@ class SacerApp(tk.Frame):
             df_final6 = df_final4.rename(columns={'level_0': 'Param'})
 
             if Year1 == Year2 and Mes_inicio == Mes_fin:
-                """If evaluation period is just one month get the average of the values in another column named 
-                'Promedio' and create a last column named 'Observaciones' """
+                # If evaluation period is just one month get the average of the values in another column named
+                # 'Promedio' and create a last column named 'Observaciones'
                 df_final6['Promedio'] = df_final6.drop(
                     ['Param', 'Frecuencia (Hz)', 'Estación', 'Canal (Número)', 'Analógico/Digital'], axis=1).replace(
                     '-',
@@ -794,14 +798,14 @@ class SacerApp(tk.Frame):
                     lambda x: x.mean(), axis=1).round(2)
                 df_final6['Observaciones'] = ''
             else:
-                """Only create a last column named 'Observaciones' """
+                # Only create a last column named 'Observaciones'
                 df_final6['Observaciones'] = ''
                 df_final6
             df_final6 = df_final6.rename(columns={'Param': 'Parámetro'}).set_index('Parámetro')
 
             if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
-                """Group the information in df17 according to the requirements for the final report: max Level and
-                average Bandwidth per Frequency and Day (AM broadcasting)"""
+                # Group the information in df17 according to the requirements for the final report: max Level and
+                # average Bandwidth per Frequency and Day (AM broadcasting)
                 df18 = df17.groupby(by=[
                     pd.Grouper(key='Tiempo', freq='D'),
                     pd.Grouper(key='Frecuencia (Hz)'),
@@ -811,8 +815,8 @@ class SacerApp(tk.Frame):
                     'Bandwidth (Hz)': 'mean'
                 }).reset_index()
 
-                """Make the pivot tables with the data structured in the way we want to show in the report
-                (AM broadcasting)"""
+                # Make the pivot tables with the data structured in the way we want to show in the report
+                # (AM broadcasting)
                 df_final7 = pd.pivot_table(df18,
                                            index=[pd.Grouper(key='Tiempo')],
                                            values=['Level (dBµV/m)', 'Bandwidth (Hz)'],
@@ -820,12 +824,12 @@ class SacerApp(tk.Frame):
                                            aggfunc={'Level (dBµV/m)': max, 'Bandwidth (Hz)': np.average}).round(2)
                 df_final7 = df_final7.T
                 df_final8 = df_final7.replace(0, '-')
-                """Reset the index (unstack) to have the columns 'Potencia', 'BW Asignado' and 'Tiempo' in the index so
-                we can use the flags in the columns 'Potencia' and 'BW Asignado' """
+                # Reset the index (unstack) to have the columns 'Potencia', 'BW Asignado' and 'Tiempo' in the index so
+                # we can use the flags in the columns 'Potencia' and 'BW Asignado'
                 df_final8 = df_final8.reset_index()
 
-                """sorter first by 'Level (dBµV/m)' and after by 'Bandwidth (Hz)' and rename the column header as
-                'Param' """
+                # Sorter first by 'Level (dBµV/m)' and after by 'Bandwidth (Hz)' and rename the column header as
+                # 'Param'
                 sorter = ['Level (dBµV/m)', 'Bandwidth (Hz)']
                 df_final8.level_0 = df_final8.level_0.astype("category")
                 df_final8.level_0 = df_final8.level_0.cat.set_categories(sorter)
@@ -833,21 +837,21 @@ class SacerApp(tk.Frame):
                 df_final9 = df_final8.rename(columns={'level_0': 'Param'})
 
                 if Year1 == Year2 and Mes_inicio == Mes_fin:
-                    """If evaluation period is just one month get the average of the values in another column named
-                    'Promedio' and create a last column named 'Observaciones' """
+                    # If evaluation period is just one month get the average of the values in another column named
+                    # 'Promedio' and create a last column named 'Observaciones'
                     df_final9['Promedio'] = df_final9.drop(['Param', 'Frecuencia (Hz)', 'Estación'], axis=1).replace(
                         '-',
                         np.NaN).apply(
                         lambda x: x.mean(), axis=1).round(2)
                     df_final9['Observaciones'] = ''
                 else:
-                    """Only create a last column named 'Observaciones' """
+                    # Only create a last column named 'Observaciones'
                     df_final9['Observaciones'] = ''
                     df_final9
                 df_final9 = df_final9.rename(columns={'Param': 'Parámetro'}).set_index('Parámetro')
 
-            """EXCEL REPORT CREATION: REPORTE GENERAL"""
-            """create, write and save"""
+            # EXCEL REPORT CREATION: REPORTE GENERAL
+            # create, write and save
             with pd.ExcelWriter(f'{download_route}/RTV_Verificación de parámetros.xlsx') as writer:
                 df_final5.to_excel(writer, sheet_name='Radiodifusión FM')
                 df_final6.to_excel(writer, sheet_name='Televisión')
@@ -863,14 +867,14 @@ class SacerApp(tk.Frame):
                         df_original3.to_excel(writer, sheet_name='Mediciones AM')
                         worksheet5 = writer.sheets['Mediciones AM']
 
-                """Get the xlsxwriter workbook and worksheet objects."""
+                # Get the xlsxwriter workbook and worksheet objects.
                 workbook = writer.book
                 worksheet = writer.sheets['Radiodifusión FM']
                 worksheet1 = writer.sheets['Televisión']
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
                     worksheet4 = writer.sheets['Radiodifusión AM']
 
-                """Add a format."""
+                # Add a format.
                 format1 = workbook.add_format({'bg_color': '#C6EFCE',
                                                'font_color': '#006100'})
                 format2 = workbook.add_format({'bg_color': '#FFC7CE',
@@ -884,10 +888,10 @@ class SacerApp(tk.Frame):
                 format6 = workbook.add_format({'bg_color': '#99CCFF',
                                                'font_color': '#0066FF'})
 
-                """Get the dimensions of the dataframe (FM broadcasting)."""
+                # Get the dimensions of the dataframe (FM broadcasting).
                 (max_row, max_col) = df_final5.drop(['Observaciones'], axis=1).shape
 
-                """Apply a conditional format to the required cell range."""
+                # Apply a conditional format to the required cell range.
                 worksheet.conditional_format(0, 5, 0, int(max_col + 1),
                                              {'type': 'no_errors',
                                               'format': format4})
@@ -1000,10 +1004,10 @@ class SacerApp(tk.Frame):
                 worksheet.write('B217',
                                 f'- Nota 3.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar sujeta a los resultados de las mediciones del siguiente mes.')
 
-                """Get the dimensions of the dataframe (TV broadcasting)."""
+                # Get the dimensions of the dataframe (TV broadcasting).
                 (max_row1, max_col1) = df_final6.drop(['Observaciones'], axis=1).shape
 
-                """Apply a conditional format to the required cell range."""
+                # Apply a conditional format to the required cell range.
                 worksheet1.conditional_format(0, 5, 0, int(max_col1 + 1),
                                               {'type': 'no_errors',
                                                'format': format4})
@@ -1090,10 +1094,10 @@ class SacerApp(tk.Frame):
                                  f'- Nota 2.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar sujeta a los resultados de las mediciones del siguiente mes.')
 
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
-                    """Get the dimensions of the dataframe (AM broadcasting)."""
+                    # Get the dimensions of the dataframe (AM broadcasting).
                     (max_row4, max_col4) = df_final9.drop(['Observaciones'], axis=1).shape
 
-                    """Apply a conditional format to the required cell range."""
+                    # Apply a conditional format to the required cell range.
                     worksheet4.conditional_format(0, 3, 0, int(max_col4 + 1),
                                                   {'type': 'no_errors',
                                                    'format': format4})
@@ -1158,35 +1162,35 @@ class SacerApp(tk.Frame):
                                      f'- Nota 3.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar sujeta a los resultados de las mediciones del siguiente mes.')
 
                     if Year1 == Year2 and Mes_inicio == Mes_fin:
-                        """Get the dimensions of the dataframe (FM broadcasting)."""
+                        # Get the dimensions of the dataframe (FM broadcasting).
                         (max_row2, max_col2) = df_original1.shape
 
-                        """Apply a conditional format to the required cell range."""
+                        # Apply a conditional format to the required cell range.
                         worksheet2.conditional_format(1, 1, int(max_row2), int(max_col2),
                                                       {'type': 'no_errors',
                                                        'format': format5})
                         worksheet2.autofilter(0, 0, 0, int(max_col2))
 
-                        """Get the dimensions of the dataframe (TV broadcasting)."""
+                        # Get the dimensions of the dataframe (TV broadcasting).
                         (max_row3, max_col3) = df_original2.shape
 
-                        """Apply a conditional format to the required cell range."""
+                        # Apply a conditional format to the required cell range.
                         worksheet3.conditional_format(1, 1, int(max_row3), int(max_col3),
                                                       {'type': 'no_errors',
                                                        'format': format5})
                         worksheet3.autofilter(0, 0, 0, int(max_col3))
 
                         if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
-                            """Get the dimensions of the dataframe (AM broadcasting)."""
+                            # Get the dimensions of the dataframe (AM broadcasting).
                             (max_row5, max_col5) = df_original3.shape
 
-                            """Apply a conditional format to the required cell range."""
+                            # Apply a conditional format to the required cell range.
                             worksheet5.conditional_format(1, 1, int(max_row5), int(max_col5),
                                                           {'type': 'no_errors',
                                                            'format': format5})
                             worksheet5.autofilter(0, 0, 0, int(max_col5))
 
-            """Change the name of the file"""
+            # Change the name of the file
             old_name = 'RTV_Verificación de parámetros.xlsx'
             if Year1 == Year2 and Mes_inicio == Mes_fin:
                 new_name = 'RTV_Verificación de parámetros_{}_{}_{}.xlsx'.format(Ciudad, Mes_inicio, Year1)
@@ -1194,40 +1198,39 @@ class SacerApp(tk.Frame):
                 new_name = 'RTV_Verificación de parámetros_{}_{}{}_{}{}.xlsx'.format(Ciudad, Mes_inicio, Year1, Mes_fin,
                                                                                      Year2)
 
-            """Remove the previous file if already exist"""
+            # Remove the previous file if already exist
             if os.path.exists(f'{download_route}/{new_name}'):
                 os.remove(f'{download_route}/{new_name}')
 
-            """Rename the file"""
+            # Rename the file
             os.rename(f'{download_route}/{old_name}',
                       f'{download_route}/{new_name}')
 
         elif Ocupacion == False and AM_Reporte_individual == False and FM_Reporte_individual == False and TV_Reporte_individual == False and Autorizaciones == True:
-            """REPORTE GENERAL AUTORIZACIONES"""
-
-            """filter dfau2 to get FM frequencies per City"""
+            # REPORTE GENERAL AUTORIZACIONES
+            # Filter dfau2 to get FM frequencies per City
             dfau2 = dfau1[(dfau1.freq > 87700000) & (dfau1.freq < 108100000)]
             dfau2 = dfau2.rename(columns={'freq': 'Frecuencia (Hz)', 'Fecha_inicio': 'Tiempo'})
             dfau2 = dfau2.loc[dfau2['ciu'] == autori]
             dfau6 = dfau2
             dfau2 = dfau2.drop(columns=['est'])
 
-            """filter dfau3 to get TV channels per City"""
+            # Filter dfau3 to get TV channels per City
             dfau3 = dfau1[(dfau1.freq >= 2) & (dfau1.freq <= 51)]
             dfau3 = dfau3.rename(columns={'freq': 'Canal (Número)', 'Fecha_inicio': 'Tiempo'})
             dfau3 = dfau3.loc[dfau3['ciu'] == autori]
             dfau7 = dfau3
             dfau3 = dfau3.drop(columns=['est'])
 
-            """filter dfau8 to get AM frequencies per City"""
+            # Filter dfau8 to get AM frequencies per City
             dfau8 = dfau1[(dfau1.freq >= 570000) & (dfau1.freq <= 1590000)]
             dfau8 = dfau8.rename(columns={'freq': 'Frecuencia (Hz)', 'Fecha_inicio': 'Tiempo'})
             dfau8 = dfau8.loc[dfau8['ciu'] == autori]
             dfau10 = dfau8
             dfau8 = dfau8.drop(columns=['est'])
 
-            """Group the information in df9 according to the requirements for the final report: max Level and average
-            Bandwidth per Frequency and Day (FM broadcasting)"""
+            # Group the information in df9 according to the requirements for the final report: max Level and average
+            # Bandwidth per Frequency and Day (FM broadcasting)
             df11 = df9.groupby(by=[
                 pd.Grouper(key='Tiempo', freq='D'),
                 pd.Grouper(key='Frecuencia (Hz)'),
@@ -1239,8 +1242,8 @@ class SacerApp(tk.Frame):
                 'Bandwidth (Hz)': 'mean'
             }).reset_index()
 
-            """Group the information in df10 according to the requirements for the final report: max Level per Frequency
-            and Day (TV broadcasting)"""
+            # Group the information in df10 according to the requirements for the final report: max Level per Frequency
+            # and Day (TV broadcasting)
             df12 = df10.groupby(by=[
                 pd.Grouper(key='Tiempo', freq='D'),
                 pd.Grouper(key='Frecuencia (Hz)'),
@@ -1251,8 +1254,8 @@ class SacerApp(tk.Frame):
                 'Level (dBµV/m)': 'max'
             }).reset_index()
 
-            """Merge dfau2 with df11 dataframe to add the autorization df11 is the dataframe that contains all the
-            information for FM"""
+            # Merge dfau2 with df11 dataframe to add the autorization df11 is the dataframe that contains all the
+            # information for FM
             dfau2 = dfau2.rename(columns={'Fecha_inicio': 'Tiempo'})
             dfau2 = dfau2.drop(columns=['ciu'])
             dfau4 = []
@@ -1268,8 +1271,8 @@ class SacerApp(tk.Frame):
             df11 = dfau4.merge(df11, how='right', on=['Tiempo', 'Frecuencia (Hz)'])
             df11 = df11.fillna('-')
 
-            """Merge dfau3 with df12 dataframe to add the autorization df10 is the dataframe that contains all the 
-            information for TV"""
+            # Merge dfau3 with df12 dataframe to add the autorization df10 is the dataframe that contains all the
+            # information for TV
             dfau3 = dfau3.rename(columns={'Fecha_inicio': 'Tiempo'})
             dfau3 = dfau3.drop(columns=['ciu'])
             dfau5 = []
@@ -1285,8 +1288,8 @@ class SacerApp(tk.Frame):
             df12 = dfau5.merge(df12, how='right', on=['Tiempo', 'Canal (Número)'])
             df12 = df12.fillna('-')
 
-            """Make the pivot tables with the data structured in the way we want to show in the report
-            (FM broadcasting)"""
+            # Make the pivot tables with the data structured in the way we want to show in the report
+            # (FM broadcasting)
             df_final1 = pd.pivot_table(df11,
                                        index=[pd.Grouper(key='Tiempo')],
                                        values=['Level (dBµV/m)', 'Bandwidth (Hz)', 'Fecha_fin'],
