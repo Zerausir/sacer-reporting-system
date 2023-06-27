@@ -1,3 +1,3 @@
 # SACER Reporting System
 
-SACER reporting system code.
+Radioelectric Spectrum Automatic Control System reporting code.
