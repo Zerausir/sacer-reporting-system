@@ -1430,22 +1430,43 @@ class SacerApp(tk.Frame):
                 df_final6.to_excel(writer, sheet_name='Televisión')
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
                     df_final9.to_excel(writer, sheet_name='Radiodifusión AM')
+
+                """copy the column 'Tiempo' to a list and save it in col1"""
+                col1 = dfau6['Tiempo'].copy().tolist()
+                """insert a column in the index 13 with the name 'Fecha_ini' with the col1 information"""
+                dfau6.insert(13, 'Fecha_ini', col1)
+                dfau6 = dfau6.rename(
+                    columns={'freq': 'Frecuencia (Hz)', 'Fecha_ini': 'Fecha_inicio'})
                 dfau6.set_index('Frecuencia (Hz)').rename(
                     columns={'est': 'Estación', 'Fecha_inicio': 'Inicio Autorización',
                              'Fecha_fin': 'Fin Autorización'}).drop(
-                    columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo', 'Plazo']).to_excel(
-                    writer, sheet_name='Autorizaciones FM')
+                    columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).to_excel(writer,
+                                                                                         sheet_name='Autorizaciones FM')
+
+                """copy the column 'Tiempo' to a list and save it in col1"""
+                col2 = dfau7['Tiempo'].copy().tolist()
+                """insert a column in the index 13 with the name 'Fecha_ini' with the col1 information"""
+                dfau7.insert(13, 'Fecha_ini', col2)
+                dfau7 = dfau7.rename(
+                    columns={'freq': 'Canal (Número)', 'Fecha_ini': 'Fecha_inicio'})
                 dfau7.set_index('Canal (Número)').rename(
                     columns={'est': 'Estación', 'Fecha_inicio': 'Inicio Autorización',
                              'Fecha_fin': 'Fin Autorización'}).drop(
-                    columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo', 'Plazo']).to_excel(
-                    writer, sheet_name='Autorizaciones TV')
+                    columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).to_excel(writer,
+                                                                                         sheet_name='Autorizaciones TV')
+
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
+                    """copy the column 'Tiempo' to a list and save it in col1"""
+                    col3 = dfau10['Tiempo'].copy().tolist()
+                    """insert a column in the index 13 with the name 'Fecha_ini' with the col1 information"""
+                    dfau10.insert(13, 'Fecha_ini', col3)
+                    dfau10 = dfau10.rename(
+                        columns={'freq': 'Frecuencia (Hz)', 'Fecha_ini': 'Fecha_inicio'})
                     dfau10.set_index('Frecuencia (Hz)').rename(
                         columns={'est': 'Estación', 'Fecha_inicio': 'Inicio Autorización',
                                  'Fecha_fin': 'Fin Autorización'}).drop(
-                        columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo', 'Plazo']).to_excel(
-                        writer, sheet_name='Autorizaciones AM')
+                        columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).to_excel(writer,
+                                                                                             sheet_name='Autorizaciones AM')
 
                 if Year1 == Year2 and Mes_inicio == Mes_fin:
                     df_original1.to_excel(writer, sheet_name='Mediciones FM')
@@ -1484,7 +1505,7 @@ class SacerApp(tk.Frame):
 
                 """Get the dimensions of the dataframe (FM broadcasting)."""
                 (max_row4, max_col4) = dfau6.drop(
-                    columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo', 'Plazo']).set_index(
+                    columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).set_index(
                     'Frecuencia (Hz)').shape
 
                 """Apply a conditional format to the required cell range."""
@@ -1495,7 +1516,7 @@ class SacerApp(tk.Frame):
 
                 """Get the dimensions of the dataframe (TV broadcasting)."""
                 (max_row5, max_col5) = dfau7.drop(
-                    columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo', 'Plazo']).set_index(
+                    columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).set_index(
                     'Canal (Número)').shape
 
                 """Apply a conditional format to the required cell range."""
@@ -1507,7 +1528,7 @@ class SacerApp(tk.Frame):
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
                     """Get the dimensions of the dataframe (AM broadcasting)."""
                     (max_row6, max_col6) = dfau10.drop(
-                        columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo', 'Plazo']).set_index(
+                        columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).set_index(
                         'Frecuencia (Hz)').shape
 
                     """Apply a conditional format to the required cell range."""
