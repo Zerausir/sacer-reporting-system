@@ -582,8 +582,11 @@ class SacerApp(tk.Frame):
         dfau1['Tipo'] = pd.Series(['S' for x in range(len(dfau1.index))])
         dfau1 = dfau1[dfau1.Oficio != '-']
         dfau1 = dfau1[dfau1.Fecha_inicio != '-']
+        dfau1['Fecha_ingreso'] = dfau1['Fecha_ingreso'].replace({'-': ''})
         dfau1['Fecha_ingreso'] = pd.to_datetime(dfau1['Fecha_ingreso'])
+        dfau1['Fecha_oficio'] = dfau1['Fecha_oficio'].replace({'-': ''})
         dfau1['Fecha_oficio'] = pd.to_datetime(dfau1['Fecha_oficio'])
+        dfau1['Fecha_inicio'] = dfau1['Fecha_inicio'].replace({'-': ''})
         dfau1['Fecha_inicio'] = pd.to_datetime(dfau1['Fecha_inicio'])
         dfau1['Fecha_fin'] = dfau1['Fecha_inicio'] + pd.to_timedelta(dfau1['Plazo'] - 1, unit='d')
         dfau1['freq1'] = dfau1['freq1'].replace('-', np.nan)
