@@ -17,6 +17,7 @@ download_route = os.getenv('download_route')
 
 # Name of the files with the data for suspension authorizations and the broadcasting stations
 file_aut_sus = os.getenv('file_aut_sus')
+file_aut_bp = os.getenv('file_aut_bp')
 file_estaciones = os.getenv('file_estaciones')
 
 # Columns to be selected in the data files
@@ -26,6 +27,9 @@ columnasAM = ['Tiempo', 'Frecuencia (Hz)', 'Level (dBµV/m)', 'Offset (Hz)', 'AM
 columnasAUT = ['No. INGRESO ARCOTEL', 'FECHA INGRESO', 'NOMBRE ESTACIÓN', 'M/R', 'FREC / CANAL',
                'CIUDAD PRINCIPAL COBERTURA', 'DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'No. OFICIO ARCOTEL',
                'FECHA OFICIO', 'FECHA INICIO SUSPENSION', 'DIAS', 'ZONAL']
+columnasAUTBP = ['No. INGRESO ARCOTEL', 'FECHA INGRESO', 'NOMBRE ESTACIÓN', 'M/R', 'FREC / CANAL',
+               'CIUDAD PRINCIPAL COBERTURA', 'DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'No. OFICIO ARCOTEL',
+               'FECHA OFICIO', 'FECHA INICIO BAJA POTENCIA', 'DIAS', 'ZONAL']
 
 # This code only produce a warning that pop-up when using matplotlib for annotations, that is the reason why it is
 # disable on purpose. In case a change is made in the code, comment this line to see any other new warning
@@ -568,29 +572,55 @@ class SacerApp(tk.Frame):
         df8 = pd.read_excel(f'{server_route}/{file_estaciones}', sheet_name=sheet_name2)
         df8 = df8.fillna('-')
 
-        # dfau1: read the data in SUSPENSIÓN EMISIONES-VERIFICACIÓN REINICIO OPERACIÓN.xlsx file and convert
+        # dfau: read the data in SUSPENSIÓN EMISIONES-VERIFICACIÓN REINICIO OPERACIÓN.xlsx file and convert
         # it to a pandas dataframe
-        dfau1 = pd.read_excel(
+        dfau = pd.read_excel(
             f'{server_route}/{file_aut_sus}',
             skiprows=1, usecols=columnasAUT)
-        dfau1 = dfau1.fillna('-')
-        dfau1 = dfau1.rename(
+        dfau = dfau.fillna('-')
+        dfau = dfau.rename(
             columns={'FECHA INGRESO': 'Fecha_ingreso', 'FREC / CANAL': 'freq1', 'CIUDAD PRINCIPAL COBERTURA': 'ciu',
                      'No. OFICIO ARCOTEL': 'Oficio', 'NOMBRE ESTACIÓN': 'est',
                      'FECHA INICIO SUSPENSION': 'Fecha_inicio',
                      'FECHA OFICIO': 'Fecha_oficio', 'DIAS': 'Plazo'})
-        dfau1['Tipo'] = pd.Series(['S' for x in range(len(dfau1.index))])
-        dfau1 = dfau1[dfau1.Oficio != '-']
-        dfau1 = dfau1[dfau1.Fecha_inicio != '-']
-        dfau1['Fecha_ingreso'] = dfau1['Fecha_ingreso'].replace({'-': ''})
-        dfau1['Fecha_ingreso'] = pd.to_datetime(dfau1['Fecha_ingreso'])
-        dfau1['Fecha_oficio'] = dfau1['Fecha_oficio'].replace({'-': ''})
-        dfau1['Fecha_oficio'] = pd.to_datetime(dfau1['Fecha_oficio'])
-        dfau1['Fecha_inicio'] = dfau1['Fecha_inicio'].replace({'-': ''})
-        dfau1['Fecha_inicio'] = pd.to_datetime(dfau1['Fecha_inicio'])
-        dfau1['Fecha_fin'] = dfau1['Fecha_inicio'] + pd.to_timedelta(dfau1['Plazo'] - 1, unit='d')
-        dfau1['freq1'] = dfau1['freq1'].replace('-', np.nan)
-        dfau1['freq1'] = pd.to_numeric(dfau1['freq1'])
+        dfau['Tipo'] = pd.Series(['S' for x in range(len(dfau.index))])
+        dfau = dfau[dfau.Oficio != '-']
+        dfau = dfau[dfau.Fecha_inicio != '-']
+        dfau['Fecha_ingreso'] = dfau['Fecha_ingreso'].replace({'-': ''})
+        dfau['Fecha_ingreso'] = pd.to_datetime(dfau['Fecha_ingreso'])
+        dfau['Fecha_oficio'] = dfau['Fecha_oficio'].replace({'-': ''})
+        dfau['Fecha_oficio'] = pd.to_datetime(dfau['Fecha_oficio'])
+        dfau['Fecha_inicio'] = dfau['Fecha_inicio'].replace({'-': ''})
+        dfau['Fecha_inicio'] = pd.to_datetime(dfau['Fecha_inicio'])
+        dfau['Fecha_fin'] = dfau['Fecha_inicio'] + pd.to_timedelta(dfau['Plazo'] - 1, unit='d')
+        dfau['freq1'] = dfau['freq1'].replace('-', np.nan)
+        dfau['freq1'] = pd.to_numeric(dfau['freq1'])
+
+        # dfaubp1: read the data in AUTORIZACIONES BAJA POTENCIA.xlsx file and convert
+        # it to a pandas dataframe
+        dfaubp1 = pd.read_excel(
+            f'{server_route}/{file_aut_bp}',
+            skiprows=1, usecols=columnasAUTBP)
+        dfaubp1 = dfaubp1.fillna('-')
+        dfaubp1 = dfaubp1.rename(
+            columns={'FECHA INGRESO': 'Fecha_ingreso', 'FREC / CANAL': 'freq1', 'CIUDAD PRINCIPAL COBERTURA': 'ciu',
+                     'No. OFICIO ARCOTEL': 'Oficio', 'NOMBRE ESTACIÓN': 'est',
+                     'FECHA INICIO BAJA POTENCIA': 'Fecha_inicio',
+                     'FECHA OFICIO': 'Fecha_oficio', 'DIAS': 'Plazo'})
+        dfaubp1['Tipo'] = pd.Series(['BP' for x in range(len(dfaubp1.index))])
+        dfaubp1 = dfaubp1[dfaubp1.Oficio != '-']
+        dfaubp1 = dfaubp1[dfaubp1.Fecha_inicio != '-']
+        dfaubp1['Fecha_ingreso'] = dfaubp1['Fecha_ingreso'].replace({'-': ''})
+        dfaubp1['Fecha_ingreso'] = pd.to_datetime(dfaubp1['Fecha_ingreso'])
+        dfaubp1['Fecha_oficio'] = dfaubp1['Fecha_oficio'].replace({'-': ''})
+        dfaubp1['Fecha_oficio'] = pd.to_datetime(dfaubp1['Fecha_oficio'])
+        dfaubp1['Fecha_inicio'] = dfaubp1['Fecha_inicio'].replace({'-': ''})
+        dfaubp1['Fecha_inicio'] = pd.to_datetime(dfaubp1['Fecha_inicio'])
+        dfaubp1['Fecha_fin'] = dfaubp1['Fecha_inicio'] + pd.to_timedelta(dfaubp1['Plazo'] - 1, unit='d')
+        dfaubp1['freq1'] = dfaubp1['freq1'].replace('-', np.nan)
+        dfaubp1['freq1'] = pd.to_numeric(dfaubp1['freq1'])
+
+        dfau1 = pd.concat([dfau, dfaubp1], ignore_index=True)
 
         def freq(row):
             """function to modify the values in freq1 column to present all in Hz, except if is a TV channel number"""
