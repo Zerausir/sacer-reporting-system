@@ -1470,6 +1470,7 @@ class SacerApp(tk.Frame):
                 dfau6.insert(13, 'Fecha_ini', col1)
                 dfau6 = dfau6.rename(
                     columns={'freq': 'Frecuencia (Hz)', 'Fecha_ini': 'Fecha_inicio'})
+                dfau6.sort_values(by=['Fecha_inicio'], ascending=True, inplace=True)
                 dfau6.set_index('Frecuencia (Hz)').rename(
                     columns={'est': 'Estación', 'Fecha_inicio': 'Inicio Autorización',
                              'Fecha_fin': 'Fin Autorización'}).drop(
@@ -1482,6 +1483,7 @@ class SacerApp(tk.Frame):
                 dfau7.insert(13, 'Fecha_ini', col2)
                 dfau7 = dfau7.rename(
                     columns={'freq': 'Canal (Número)', 'Fecha_ini': 'Fecha_inicio'})
+                dfau7.sort_values(by=['Fecha_inicio'], ascending=True, inplace=True)
                 dfau7.set_index('Canal (Número)').rename(
                     columns={'est': 'Estación', 'Fecha_inicio': 'Inicio Autorización',
                              'Fecha_fin': 'Fin Autorización'}).drop(
@@ -1495,6 +1497,7 @@ class SacerApp(tk.Frame):
                     dfau10.insert(13, 'Fecha_ini', col3)
                     dfau10 = dfau10.rename(
                         columns={'freq': 'Frecuencia (Hz)', 'Fecha_ini': 'Fecha_inicio'})
+                    dfau10.sort_values(by=['Fecha_inicio'], ascending=True, inplace=True)
                     dfau10.set_index('Frecuencia (Hz)').rename(
                         columns={'est': 'Estación', 'Fecha_inicio': 'Inicio Autorización',
                                  'Fecha_fin': 'Fin Autorización'}).drop(
@@ -3214,6 +3217,7 @@ class SacerApp(tk.Frame):
             """create, write and save"""
             with pd.ExcelWriter(f'{download_route}/RTV_Verificación de parámetros.xlsx') as writer:
                 df_final3.to_excel(writer, sheet_name=f'Radiodifusión FM_{Frecuencia_FM} Hz')
+                dfau2.sort_values(by=['Fecha_inicio'], ascending=True, inplace=True)
                 dfau2.set_index('Frecuencia (Hz)').rename(
                     columns={'Fecha_inicio': 'Inicio Autorización', 'Fecha_fin': 'Fin Autorización'}).drop(
                     columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).to_excel(writer,
@@ -3631,6 +3635,7 @@ class SacerApp(tk.Frame):
             """create, write and save"""
             with pd.ExcelWriter(f'{download_route}/RTV_Verificación de parámetros.xlsx') as writer:
                 df_final4.to_excel(writer, sheet_name=f'Televisión_Canal {Canal_TV}')
+                dfau2.sort_values(by=['Fecha_inicio'], ascending=True, inplace=True)
                 dfau2.set_index('Canal (Número)').rename(
                     columns={'Fecha_inicio': 'Inicio Autorización', 'Fecha_fin': 'Fin Autorización'}).drop(
                     columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).to_excel(writer,
@@ -4003,6 +4008,7 @@ class SacerApp(tk.Frame):
                 """create, write and save"""
                 with pd.ExcelWriter(f'{download_route}/RTV_Verificación de parámetros.xlsx') as writer:
                     df_final8.to_excel(writer, sheet_name=f'Radiodifusión AM_{Frecuencia_AM} Hz')
+                    dfau2.sort_values(by=['Fecha_inicio'], ascending=True, inplace=True)
                     dfau2.set_index('Frecuencia (Hz)').rename(
                         columns={'Fecha_inicio': 'Inicio Autorización', 'Fecha_fin': 'Fin Autorización'}).drop(
                         columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).to_excel(writer,
