@@ -5,8 +5,10 @@ from tkinter import messagebox
 import pandas as pd
 import swifter
 import numpy as np
+import seaborn as sns
 import datetime
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import warnings
 from dotenv import load_dotenv
 
@@ -1969,137 +1971,244 @@ class SacerApp(tk.Frame):
                 df18["tiempo"] = pd.to_datetime(df18["tiempo"], format='%d/%m/%Y %H:%M:%S.%f')
                 df21 = df18[(df18.tiempo >= fecha_inicio) & (df18.tiempo <= fecha_fin)]
 
-            def umb1(row):
-                """function to return level value if is >= to the selected Umbral_FM"""
-                if row['level'] >= Umbral_FM:
-                    return row['level']
-                return
-
-            def umb2(row):
-                """function to return level value if is >= to the selected Umbral_TV"""
-                if row['level'] >= Umbral_TV:
-                    return row['level']
-                return
-
-            def umb3(row):
-                """function to return level value if is >= to the selected Umbral_AM"""
-                if row['level'] >= Umbral_AM:
-                    return row['level']
-                return
+            def threshold_level(row, threshold):
+                """function to return level value if is >= to the selected threshold"""
+                return row['level'] if row['level'] >= threshold else None
 
             fecha_init = fecha_inicio.strftime('%Y-%m-%d')
             fecha_end = fecha_fin.strftime('%Y-%m-%d')
 
-            """contar4: dataframe with the occupation by frequency (FM broadcasting)"""
-            series1 = df19.drop(columns=['tiempo'])
-            series1['umb'] = series1.swifter.apply(lambda row: umb1(row), axis=1)
-            series1 = series1.rename(columns={'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
-            contar1 = series1.groupby('Frecuencia (Hz)').count()
-            contar1['occupation'] = ((contar1['umb'] / contar1['total_mediciones']) * 100).round(6)
-            contar1 = contar1.drop(columns=['total_mediciones', 'umb'])
-            contar4 = contar1.rename(columns={'occupation': 'Ocupación (%)'})
+            """contar1: dataframe with the occupation by frequency (FM broadcasting)"""
+            series1 = df19.drop(columns=['tiempo']).copy()
+            series1['above_threshold'] = series1.apply(threshold_level, axis=1, threshold=Umbral_FM)
+            occupation_counts1 = series1.groupby('freq').agg(total_measurements=('level', 'count'),
+                                                             above_threshold_count=('above_threshold', 'count'))
+            occupation_counts1['occupation'] = ((occupation_counts1['above_threshold_count'] / occupation_counts1[
+                'total_measurements']) * 100).round(6)
+            contar1 = occupation_counts1.drop(columns=['total_measurements', 'above_threshold_count'])
+            contar1 = contar1.rename(
+                columns={'occupation': 'Ocupación (%)', 'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
 
-            """Draw plot FM"""
-            fig, ax = plt.subplots(figsize=(20, 10), facecolor='white', dpi=80)
-            ax.vlines(x=contar1.index, ymin=0, ymax=contar1.occupation, color='steelblue', alpha=0.7, linewidth=2)
-            ax.scatter(x=contar1.index, y=contar1.occupation, s=75, color='steelblue', alpha=0.7)
+            # Assuming df19['freq'] is sorted and numeric
+            freq_values = df19['freq'].unique()
+            freq_dict = {freq: i for i, freq in enumerate(freq_values)}
 
-            """Title, Label, Ticks and Ylim"""
-            ax.set_title(
+            # Convert 'freq' in df19 to a categorical type with the categories based on the unique frequency values
+            df19['freq'] = pd.Categorical(df19['freq'], categories=freq_values, ordered=True)
+
+            # Visualization
+            fig, axes = plt.subplot_mosaic([['scatter'], ['heatmap']], constrained_layout=True,
+                                           gridspec_kw={'height_ratios': [1, 2]})
+
+            # First plot: Occupation by Frequency
+            # Use the mapped x-values for vlines and scatter points
+            for freq, occupation in occupation_counts1['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the cells
+                axes['scatter'].vlines(x=xpos, ymin=0, ymax=occupation, color='steelblue', alpha=0.7, linewidth=2)
+                axes['scatter'].scatter(x=xpos, y=occupation, s=75, color='steelblue', alpha=0.7)
+
+            axes['scatter'].set_title(
                 f'Banda: Radiodifusión FM, Ciudad: {Ciudad}, Umbral: {Umbral_FM} dBµV/m, Periodo: {fecha_init} a {fecha_end}',
-                fontdict={'size': 20})
-            ax.set_xlabel('Frecuencia (Hz)')
-            ax.set_ylabel('Ocupación (%)')
-            ax.set_xticks(contar1.index)
-            ax.set_xticklabels(contar1.index, rotation=90, fontdict={'horizontalalignment': 'center', 'size': 10})
-            ax.set_ylim(0, 100)
+                fontsize=16)
+            axes['scatter'].set_ylabel('Ocupación (%)')
+            axes['scatter'].set_ylim(0, 100)
+            axes['scatter'].grid(color='gray', linestyle='--', linewidth=0.5)
 
-            """Annotate"""
-            for row in contar1.itertuples():
-                ax.text(row.Index, row.occupation + .5, s=int(row.occupation), horizontalalignment='center',
-                        verticalalignment='bottom', fontsize=9)
+            # Set the y-ticks and labels for the scatter plot with adjusted font size
+            yticklabels = axes['scatter'].get_yticks().tolist()  # Get the current y-tick labels
+            axes['scatter'].set_yticklabels(yticklabels, fontsize=8)  # Adjust fontsize as needed
 
-            plt.grid(color='#292929', linestyle='--', linewidth=0.5)
-            """save the plot in the file image1.png"""
+            # Set x-ticks and labels for both plots
+            # Calculate the middle position for each frequency
+            mid_positions = np.arange(len(freq_values)) + 0.5
+
+            axes['scatter'].set_xticks(mid_positions)
+            axes['scatter'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['scatter'].set_xlim(0, len(freq_values))
+
+            # Annotate scatter plot without decimals
+            for freq, occupation in occupation_counts1['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the heatmap cells
+                axes['scatter'].text(xpos, occupation + 1, s=str(int(occupation)),
+                                     horizontalalignment='center', verticalalignment='bottom', fontsize=8)
+
+            # Second plot: Heatmap of Level over Time by Frequency
+            heatmap_data1 = df19.pivot_table(values='level', index='tiempo', columns='freq').sort_index(ascending=False)
+            sns.heatmap(heatmap_data1, cmap='viridis', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+            # Set the x-ticks and labels for the heatmap
+            axes['heatmap'].set_xticks(mid_positions)
+            axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['heatmap'].set_xlim(0, len(freq_values))
+
+            # Adjust the y-tick labels font size
+            yticklabels = axes['heatmap'].get_yticklabels()
+            axes['heatmap'].set_yticklabels(yticklabels, fontsize=8)
+
+            axes['scatter'].tick_params(labelbottom=False)
+            axes['heatmap'].set_xlabel('Frecuencia (Hz)')
+            axes['heatmap'].set_ylabel('Tiempo')
+
+            # Save the combined plot to a single image
             plt.savefig('image1.png')
             plt.close()
 
-            """contar5: dataframe with the occupation by frequency (TV broadcasting)"""
-            series2 = df20.drop(columns=['tiempo'])
-            series2['umb'] = series2.swifter.apply(lambda row: umb2(row), axis=1)
-            series2 = series2.rename(columns={'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
-            contar2 = series2.groupby('Frecuencia (Hz)').count()
-            contar2['occupation'] = ((contar2['umb'] / contar2['total_mediciones']) * 100).round(6)
-            contar2 = contar2.drop(columns=['total_mediciones', 'umb'])
-            contar5 = contar2.rename(columns={'occupation': 'Ocupación (%)'})
+            """contar2: dataframe with the occupation by frequency (TV broadcasting)"""
+            series2 = df20.drop(columns=['tiempo']).copy()
+            series2['above_threshold'] = series2.apply(threshold_level, axis=1, threshold=Umbral_TV)
+            occupation_counts2 = series2.groupby('freq').agg(total_measurements=('level', 'count'),
+                                                             above_threshold_count=('above_threshold', 'count'))
+            occupation_counts2['occupation'] = ((occupation_counts2['above_threshold_count'] / occupation_counts2[
+                'total_measurements']) * 100).round(6)
+            contar2 = occupation_counts2.drop(columns=['total_measurements', 'above_threshold_count'])
+            contar2 = contar2.rename(
+                columns={'occupation': 'Ocupación (%)', 'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
 
-            """Draw plot TV"""
-            fig1, ax1 = plt.subplots(figsize=(20, 10), facecolor='white', dpi=80)
-            ax1.vlines(x=contar2.index, ymin=0, ymax=contar2.occupation, color='steelblue', alpha=0.7, linewidth=2)
-            ax1.scatter(x=contar2.index, y=contar2.occupation, s=75, color='steelblue', alpha=0.7)
+            # Assuming df20['freq'] is sorted and numeric
+            freq_values = df20['freq'].unique()
+            freq_dict = {freq: i for i, freq in enumerate(freq_values)}
 
-            """Title, Label, Ticks and Ylim"""
-            ax1.set_title(
-                f'Banda: Televisión Abierta, Ciudad: {Ciudad}, Umbral: {Umbral_TV} dBµV/m, Periodo: {fecha_init} a {fecha_end}',
-                fontdict={'size': 20})
-            ax1.set_xlabel('Frecuencia (Hz)')
-            ax1.set_ylabel('Ocupación (%)')
-            ax1.set_xticks(contar2.index)
-            ax1.set_xticklabels(contar2.index, rotation=90, fontdict={'horizontalalignment': 'center', 'size': 10})
-            ax1.set_ylim(0, 100)
+            # Convert 'freq' in df20 to a categorical type with the categories based on the unique frequency values
+            df20['freq'] = pd.Categorical(df20['freq'], categories=freq_values, ordered=True)
 
-            """Annotate"""
-            for row in contar2.itertuples():
-                ax1.text(row.Index, row.occupation + .5, s=int(row.occupation), horizontalalignment='center',
-                         verticalalignment='bottom', fontsize=9)
+            # Visualization
+            fig, axes = plt.subplot_mosaic([['scatter'], ['heatmap']], constrained_layout=True,
+                                           gridspec_kw={'height_ratios': [1, 2]})
 
-            plt.grid(color='#292929', linestyle='--', linewidth=0.5)
-            """save the plot in the file image2.png"""
+            # First plot: Occupation by Frequency
+            # Use the mapped x-values for vlines and scatter points
+            for freq, occupation in occupation_counts2['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the cells
+                axes['scatter'].vlines(x=xpos, ymin=0, ymax=occupation, color='steelblue', alpha=0.7, linewidth=2)
+                axes['scatter'].scatter(x=xpos, y=occupation, s=75, color='steelblue', alpha=0.7)
+
+            axes['scatter'].set_title(
+                f'Banda: Televisión, Ciudad: {Ciudad}, Umbral: {Umbral_TV} dBµV/m, Periodo: {fecha_init} a {fecha_end}',
+                fontsize=16)
+            axes['scatter'].set_ylabel('Ocupación (%)')
+            axes['scatter'].set_ylim(0, 100)
+            axes['scatter'].grid(color='gray', linestyle='--', linewidth=0.5)
+
+            # Set the y-ticks and labels for the scatter plot with adjusted font size
+            yticklabels = axes['scatter'].get_yticks().tolist()  # Get the current y-tick labels
+            axes['scatter'].set_yticklabels(yticklabels, fontsize=8)  # Adjust fontsize as needed
+
+            # Set x-ticks and labels for both plots
+            # Calculate the middle position for each frequency
+            mid_positions = np.arange(len(freq_values)) + 0.5
+
+            axes['scatter'].set_xticks(mid_positions)
+            axes['scatter'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['scatter'].set_xlim(0, len(freq_values))
+
+            # Annotate scatter plot without decimals
+            for freq, occupation in occupation_counts2['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the heatmap cells
+                axes['scatter'].text(xpos, occupation + 1, s=str(int(occupation)),
+                                     horizontalalignment='center', verticalalignment='bottom', fontsize=8)
+
+            # Second plot: Heatmap of Level over Time by Frequency
+            heatmap_data2 = df20.pivot_table(values='level', index='tiempo', columns='freq').sort_index(ascending=False)
+            sns.heatmap(heatmap_data2, cmap='viridis', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+            # Set the x-ticks and labels for the heatmap
+            axes['heatmap'].set_xticks(mid_positions)
+            axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['heatmap'].set_xlim(0, len(freq_values))
+
+            # Adjust the y-tick labels font size
+            yticklabels = axes['heatmap'].get_yticklabels()
+            axes['heatmap'].set_yticklabels(yticklabels, fontsize=8)
+
+            axes['scatter'].tick_params(labelbottom=False)
+            axes['heatmap'].set_xlabel('Frecuencia (Hz)')
+            axes['heatmap'].set_ylabel('Tiempo')
+
+            # Save the combined plot to a single image
             plt.savefig('image2.png')
             plt.close()
 
             if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
-                """contar6: dataframe with the occupation by frequency (AM broadcasting)"""
-                series3 = df21.drop(columns=['tiempo'])
-                series3['umb'] = series3.swifter.apply(lambda row: umb3(row), axis=1)
-                series3 = series3.rename(columns={'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
-                contar3 = series3.groupby('Frecuencia (Hz)').count()
-                contar3['occupation'] = ((contar3['umb'] / contar3['total_mediciones']) * 100).round(6)
-                contar3 = contar3.drop(columns=['total_mediciones', 'umb'])
-                contar6 = contar3.rename(columns={'occupation': 'Ocupación (%)'})
+                """contar3: dataframe with the occupation by frequency (AM broadcasting)"""
+                series3 = df21.drop(columns=['tiempo']).copy()
+                series3['above_threshold'] = series3.apply(threshold_level, axis=1, threshold=Umbral_AM)
+                occupation_counts3 = series3.groupby('freq').agg(total_measurements=('level', 'count'),
+                                                                 above_threshold_count=('above_threshold', 'count'))
+                occupation_counts3['occupation'] = ((occupation_counts3['above_threshold_count'] / occupation_counts3[
+                    'total_measurements']) * 100).round(6)
+                contar3 = occupation_counts3.drop(columns=['total_measurements', 'above_threshold_count'])
+                contar3 = contar3.rename(
+                    columns={'occupation': 'Ocupación (%)', 'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
 
-                """Draw plot AM"""
-                fig2, ax2 = plt.subplots(figsize=(20, 10), facecolor='white', dpi=80)
-                ax2.vlines(x=contar3.index, ymin=0, ymax=contar3.occupation, color='steelblue', alpha=0.7, linewidth=2)
-                ax2.scatter(x=contar3.index, y=contar3.occupation, s=75, color='steelblue', alpha=0.7)
+                # Assuming df21['freq'] is sorted and numeric
+                freq_values = df21['freq'].unique()
+                freq_dict = {freq: i for i, freq in enumerate(freq_values)}
 
-                """Title, Label, Ticks and Ylim"""
-                ax2.set_title(
+                # Convert 'freq' in df21 to a categorical type with the categories based on the unique frequency values
+                df21['freq'] = pd.Categorical(df21['freq'], categories=freq_values, ordered=True)
+
+                # Visualization
+                fig, axes = plt.subplot_mosaic([['scatter'], ['heatmap']], constrained_layout=True,
+                                               gridspec_kw={'height_ratios': [1, 2]})
+
+                # First plot: Occupation by Frequency
+                # Use the mapped x-values for vlines and scatter points
+                for freq, occupation in occupation_counts3['occupation'].items():
+                    xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the cells
+                    axes['scatter'].vlines(x=xpos, ymin=0, ymax=occupation, color='steelblue', alpha=0.7, linewidth=2)
+                    axes['scatter'].scatter(x=xpos, y=occupation, s=75, color='steelblue', alpha=0.7)
+
+                axes['scatter'].set_title(
                     f'Banda: Radiodifusión AM, Ciudad: {Ciudad}, Umbral: {Umbral_AM} dBµV/m, Periodo: {fecha_init} a {fecha_end}',
-                    fontdict={'size': 20})
-                ax2.set_xlabel('Frecuencia (Hz)')
-                ax2.set_ylabel('Ocupación (%)')
-                ax2.set_xticks(contar3.index)
-                ax2.set_xticklabels(contar3.index, rotation=90, fontdict={'horizontalalignment': 'center', 'size': 10})
-                ax2.set_ylim(0, 100)
+                    fontsize=16)
+                axes['scatter'].set_ylabel('Ocupación (%)')
+                axes['scatter'].set_ylim(0, 100)
+                axes['scatter'].grid(color='gray', linestyle='--', linewidth=0.5)
 
-                """Annotate"""
-                for row in contar3.itertuples():
-                    ax2.text(row.Index, row.occupation + .5, s=int(row.occupation), horizontalalignment='center',
-                             verticalalignment='bottom', fontsize=9)
+                # Set the y-ticks and labels for the scatter plot with adjusted font size
+                yticklabels = axes['scatter'].get_yticks().tolist()  # Get the current y-tick labels
+                axes['scatter'].set_yticklabels(yticklabels, fontsize=8)  # Adjust fontsize as needed
 
-                plt.grid(color='#292929', linestyle='--', linewidth=0.5)
-                """save the plot in the file image3.png"""
+                # Set x-ticks and labels for both plots
+                # Calculate the middle position for each frequency
+                mid_positions = np.arange(len(freq_values)) + 0.5
+
+                axes['scatter'].set_xticks(mid_positions)
+                axes['scatter'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+                axes['scatter'].set_xlim(0, len(freq_values))
+
+                # Annotate scatter plot without decimals
+                for freq, occupation in occupation_counts3['occupation'].items():
+                    xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the heatmap cells
+                    axes['scatter'].text(xpos, occupation + 1, s=str(int(occupation)),
+                                         horizontalalignment='center', verticalalignment='bottom', fontsize=8)
+
+                # Second plot: Heatmap of Level over Time by Frequency
+                heatmap_data2 = df21.pivot_table(values='level', index='tiempo', columns='freq').sort_index(
+                    ascending=False)
+                sns.heatmap(heatmap_data2, cmap='viridis', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+                # Set the x-ticks and labels for the heatmap
+                axes['heatmap'].set_xticks(mid_positions)
+                axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+                axes['heatmap'].set_xlim(0, len(freq_values))
+
+                # Adjust the y-tick labels font size
+                yticklabels = axes['heatmap'].get_yticklabels()
+                axes['heatmap'].set_yticklabels(yticklabels, fontsize=8)
+
+                axes['scatter'].tick_params(labelbottom=False)
+                axes['heatmap'].set_xlabel('Frecuencia (Hz)')
+                axes['heatmap'].set_ylabel('Tiempo')
+
+                # Save the combined plot to a single image
                 plt.savefig('image3.png')
                 plt.close()
 
             """REPORT CREATION"""
             """create, write and save"""
             with pd.ExcelWriter(f'{download_route}/RTV_Ocupación.xlsx') as writer:
-                contar4.to_excel(writer, sheet_name='OC_Radiodifusión FM')
-                contar5.to_excel(writer, sheet_name='OC_Televisión')
+                contar1.to_excel(writer, sheet_name='OC_Radiodifusión FM')
+                contar2.to_excel(writer, sheet_name='OC_Televisión')
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
-                    contar6.to_excel(writer, sheet_name='OC_Radiodifusión AM')
+                    contar3.to_excel(writer, sheet_name='OC_Radiodifusión AM')
 
                 """Get the xlsxwriter workbook and worksheet objects."""
                 workbook = writer.book
@@ -2113,7 +2222,7 @@ class SacerApp(tk.Frame):
                 format2 = workbook.add_format({'bold': True})
 
                 """Get the dimensions of the dataframe (FM broadcasting)."""
-                (max_row, max_col) = contar4.shape
+                (max_row, max_col) = contar1.shape
 
                 """swifter.apply a conditional format to the required cell range."""
                 worksheet.conditional_format(0, 1, int(max_row), int(max_col),
@@ -2131,7 +2240,7 @@ class SacerApp(tk.Frame):
                 worksheet.insert_image('E1', 'image1.png')
 
                 """Get the dimensions of the dataframe (TV broadcasting)."""
-                (max_row1, max_col1) = contar5.shape
+                (max_row1, max_col1) = contar2.shape
 
                 """swifter.apply a conditional format to the required cell range."""
                 worksheet1.conditional_format(0, 1, int(max_row1), int(max_col1),
@@ -2150,7 +2259,7 @@ class SacerApp(tk.Frame):
 
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
                     """Get the dimensions of the dataframe (AM broadcasting)."""
-                    (max_row2, max_col2) = contar6.shape
+                    (max_row2, max_col2) = contar3.shape
 
                     """swifter.apply a conditional format to the required cell range."""
                     worksheet2.conditional_format(0, 1, int(max_row2), int(max_col2),
