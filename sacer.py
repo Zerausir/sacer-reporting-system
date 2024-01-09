@@ -646,7 +646,7 @@ class SacerApp(tk.Frame):
                 return row['freq1']
 
         # Create a new column in the dfau1 dataframe by using the last function def freq(row)
-        dfau1['freq'] = dfau1.swifter.apply(lambda row: freq(row), axis=1)
+        dfau1['freq'] = dfau1.apply(lambda row: freq(row), axis=1)
         dfau1 = dfau1.drop(columns=['freq1'])
 
         # DATA CLEANING
@@ -808,7 +808,7 @@ class SacerApp(tk.Frame):
                 # 'Promedio' and create a last column named 'Observaciones'
                 df_final5['Promedio'] = df_final5.drop(
                     ['Param', 'Frecuencia (Hz)', 'Estación', 'Potencia', 'BW Asignado'],
-                    axis=1).replace('-', np.NaN).swifter.apply(lambda x: x.mean(), axis=1).round(
+                    axis=1).replace('-', np.NaN).apply(lambda x: x.mean(), axis=1).round(
                     2)
                 df_final5['Observaciones'] = ''
             else:
@@ -841,7 +841,7 @@ class SacerApp(tk.Frame):
                 df_final6['Promedio'] = df_final6.drop(
                     ['Param', 'Frecuencia (Hz)', 'Estación', 'Canal (Número)', 'Analógico/Digital'], axis=1).replace(
                     '-',
-                    np.NaN).swifter.apply(
+                    np.NaN).apply(
                     lambda x: x.mean(), axis=1).round(2)
                 df_final6['Observaciones'] = ''
             else:
@@ -888,7 +888,7 @@ class SacerApp(tk.Frame):
                     # 'Promedio' and create a last column named 'Observaciones'
                     df_final9['Promedio'] = df_final9.drop(['Param', 'Frecuencia (Hz)', 'Estación'], axis=1).replace(
                         '-',
-                        np.NaN).swifter.apply(
+                        np.NaN).apply(
                         lambda x: x.mean(), axis=1).round(2)
                     df_final9['Observaciones'] = ''
                 else:
@@ -938,7 +938,7 @@ class SacerApp(tk.Frame):
                 # Get the dimensions of the dataframe (FM broadcasting).
                 (max_row, max_col) = df_final5.drop(['Observaciones'], axis=1).shape
 
-                # swifter.apply a conditional format to the required cell range.
+                # apply a conditional format to the required cell range.
                 worksheet.conditional_format(0, 5, 0, int(max_col + 1),
                                              {'type': 'no_errors',
                                               'format': format4})
@@ -1054,7 +1054,7 @@ class SacerApp(tk.Frame):
                 # Get the dimensions of the dataframe (TV broadcasting).
                 (max_row1, max_col1) = df_final6.drop(['Observaciones'], axis=1).shape
 
-                # swifter.apply a conditional format to the required cell range.
+                # apply a conditional format to the required cell range.
                 worksheet1.conditional_format(0, 5, 0, int(max_col1 + 1),
                                               {'type': 'no_errors',
                                                'format': format4})
@@ -1144,7 +1144,7 @@ class SacerApp(tk.Frame):
                     # Get the dimensions of the dataframe (AM broadcasting).
                     (max_row4, max_col4) = df_final9.drop(['Observaciones'], axis=1).shape
 
-                    # swifter.apply a conditional format to the required cell range.
+                    # apply a conditional format to the required cell range.
                     worksheet4.conditional_format(0, 3, 0, int(max_col4 + 1),
                                                   {'type': 'no_errors',
                                                    'format': format4})
@@ -1212,7 +1212,7 @@ class SacerApp(tk.Frame):
                         # Get the dimensions of the dataframe (FM broadcasting).
                         (max_row2, max_col2) = df_original1.shape
 
-                        # swifter.apply a conditional format to the required cell range.
+                        # apply a conditional format to the required cell range.
                         worksheet2.conditional_format(1, 1, int(max_row2), int(max_col2),
                                                       {'type': 'no_errors',
                                                        'format': format5})
@@ -1221,7 +1221,7 @@ class SacerApp(tk.Frame):
                         # Get the dimensions of the dataframe (TV broadcasting).
                         (max_row3, max_col3) = df_original2.shape
 
-                        # swifter.apply a conditional format to the required cell range.
+                        # apply a conditional format to the required cell range.
                         worksheet3.conditional_format(1, 1, int(max_row3), int(max_col3),
                                                       {'type': 'no_errors',
                                                        'format': format5})
@@ -1231,7 +1231,7 @@ class SacerApp(tk.Frame):
                             # Get the dimensions of the dataframe (AM broadcasting).
                             (max_row5, max_col5) = df_original3.shape
 
-                            # swifter.apply a conditional format to the required cell range.
+                            # apply a conditional format to the required cell range.
                             worksheet5.conditional_format(1, 1, int(max_row5), int(max_col5),
                                                           {'type': 'no_errors',
                                                            'format': format5})
@@ -1363,7 +1363,7 @@ class SacerApp(tk.Frame):
                 'Promedio' and create a last column named 'Observaciones' """
                 df_final5['Promedio'] = df_final5[(df_final5.Param != 'Fin de Autorización')].drop(
                     ['Param', 'Frecuencia (Hz)', 'Estación', 'Potencia', 'BW Asignado'], axis=1).replace('-',
-                                                                                                         np.NaN).swifter.apply(
+                                                                                                         np.NaN).apply(
                     lambda x: x.mean(), axis=1).round(2)
                 df_final5['Observaciones'] = ''
             else:
@@ -1398,7 +1398,7 @@ class SacerApp(tk.Frame):
                 df_final6['Promedio'] = df_final6[(df_final6.Param != 'Fin de Autorización')].drop(
                     ['Param', 'Frecuencia (Hz)', 'Estación', 'Canal (Número)', 'Analógico/Digital'], axis=1).replace(
                     '-',
-                    np.NaN).swifter.apply(
+                    np.NaN).apply(
                     lambda x: x.mean(), axis=1).round(2)
                 df_final6['Observaciones'] = ''
             else:
@@ -1461,7 +1461,7 @@ class SacerApp(tk.Frame):
                     """If evaluation period is just one month get the average of the values in another column named
                     'Promedio' and create a last column named 'Observaciones' """
                     df_final9['Promedio'] = df_final9[(df_final9.Param != 'Fin de Autorización')].drop(
-                        ['Param', 'Frecuencia (Hz)', 'Estación'], axis=1).replace('-', np.NaN).swifter.apply(
+                        ['Param', 'Frecuencia (Hz)', 'Estación'], axis=1).replace('-', np.NaN).apply(
                         lambda x: x.mean(),
                         axis=1).round(2)
                     df_final9['Observaciones'] = ''
@@ -1559,7 +1559,7 @@ class SacerApp(tk.Frame):
                     columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).set_index(
                     'Frecuencia (Hz)').shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet4.conditional_format(1, 1, int(max_row4), int(max_col4),
                                               {'type': 'no_errors',
                                                'format': format5})
@@ -1570,7 +1570,7 @@ class SacerApp(tk.Frame):
                     columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).set_index(
                     'Canal (Número)').shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet5.conditional_format(1, 1, int(max_row5), int(max_col5),
                                               {'type': 'no_errors',
                                                'format': format5})
@@ -1582,7 +1582,7 @@ class SacerApp(tk.Frame):
                         columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).set_index(
                         'Frecuencia (Hz)').shape
 
-                    """swifter.apply a conditional format to the required cell range."""
+                    """apply a conditional format to the required cell range."""
                     worksheet7.conditional_format(1, 1, int(max_row6), int(max_col6),
                                                   {'type': 'no_errors',
                                                    'format': format5})
@@ -1591,7 +1591,7 @@ class SacerApp(tk.Frame):
                 """Get the dimensions of the dataframe (FM broadcasting)."""
                 (max_row, max_col) = df_final5.drop(['Observaciones'], axis=1).shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet.conditional_format(0, 5, 0, int(max_col + 1),
                                              {'type': 'no_errors',
                                               'format': format4})
@@ -1723,7 +1723,7 @@ class SacerApp(tk.Frame):
                 """Get the dimensions of the dataframe (TV broadcasting)."""
                 (max_row1, max_col1) = df_final6.drop(['Observaciones'], axis=1).shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet1.conditional_format(0, 5, 0, int(max_col1 + 1),
                                               {'type': 'no_errors',
                                                'format': format4})
@@ -1824,7 +1824,7 @@ class SacerApp(tk.Frame):
                     """Get the dimensions of the dataframe (AM broadcasting)."""
                     (max_row7, max_col7) = df_final9.drop(['Observaciones'], axis=1).shape
 
-                    """swifter.apply a conditional format to the required cell range."""
+                    """apply a conditional format to the required cell range."""
                     worksheet6.conditional_format(0, 3, 0, int(max_col7 + 1),
                                                   {'type': 'no_errors',
                                                    'format': format4})
@@ -1903,7 +1903,7 @@ class SacerApp(tk.Frame):
                     """Get the dimensions of the dataframe (FM broadcasting)."""
                     (max_row2, max_col2) = df_original1.shape
 
-                    """swifter.apply a conditional format to the required cell range."""
+                    """apply a conditional format to the required cell range."""
                     worksheet2.conditional_format(1, 1, int(max_row2), int(max_col2),
                                                   {'type': 'no_errors',
                                                    'format': format5})
@@ -1912,7 +1912,7 @@ class SacerApp(tk.Frame):
                     """Get the dimensions of the dataframe (TV broadcasting)."""
                     (max_row3, max_col3) = df_original2.shape
 
-                    """swifter.apply a conditional format to the required cell range."""
+                    """apply a conditional format to the required cell range."""
                     worksheet3.conditional_format(1, 1, int(max_row3), int(max_col3),
                                                   {'type': 'no_errors',
                                                    'format': format5})
@@ -1922,7 +1922,7 @@ class SacerApp(tk.Frame):
                         """Get the dimensions of the dataframe (AM broadcasting)."""
                         (max_row8, max_col8) = df_original3.shape
 
-                        """swifter.apply a conditional format to the required cell range."""
+                        """apply a conditional format to the required cell range."""
                         worksheet8.conditional_format(1, 1, int(max_row8), int(max_col8),
                                                       {'type': 'no_errors',
                                                        'format': format5})
@@ -2224,7 +2224,7 @@ class SacerApp(tk.Frame):
                 """Get the dimensions of the dataframe (FM broadcasting)."""
                 (max_row, max_col) = contar1.shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet.conditional_format(0, 1, int(max_row), int(max_col),
                                              {'type': 'no_errors',
                                               'format': format1})
@@ -2242,7 +2242,7 @@ class SacerApp(tk.Frame):
                 """Get the dimensions of the dataframe (TV broadcasting)."""
                 (max_row1, max_col1) = contar2.shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet1.conditional_format(0, 1, int(max_row1), int(max_col1),
                                               {'type': 'no_errors',
                                                'format': format1})
@@ -2261,7 +2261,7 @@ class SacerApp(tk.Frame):
                     """Get the dimensions of the dataframe (AM broadcasting)."""
                     (max_row2, max_col2) = contar3.shape
 
-                    """swifter.apply a conditional format to the required cell range."""
+                    """apply a conditional format to the required cell range."""
                     worksheet2.conditional_format(0, 1, int(max_row2), int(max_col2),
                                                   {'type': 'no_errors',
                                                    'format': format1})
@@ -2406,10 +2406,10 @@ class SacerApp(tk.Frame):
                 return 0
 
             """create a new column in the series frame for every definition (minus, bet, plus, valor)"""
-            series['minus'] = series.swifter.apply(lambda row: minus(row), axis=1)
-            series['bet'] = series.swifter.apply(lambda row: bet(row), axis=1)
-            series['plus'] = series.swifter.apply(lambda row: plus(row), axis=1)
-            series['valor'] = series.swifter.apply(lambda row: valor(row), axis=1)
+            series['minus'] = series.apply(lambda row: minus(row), axis=1)
+            series['bet'] = series.apply(lambda row: bet(row), axis=1)
+            series['plus'] = series.apply(lambda row: plus(row), axis=1)
+            series['valor'] = series.apply(lambda row: valor(row), axis=1)
 
             fig = plt.figure()
             """111 means 1x1 grid, first subplot, so it will put every subplot in the same figure"""
@@ -2463,7 +2463,7 @@ class SacerApp(tk.Frame):
                 """Get the dimensions of the dataframe."""
                 (max_row, max_col) = df_final3.shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet.conditional_format(0, 5, 0, int(max_col),
                                              {'type': 'no_errors',
                                               'format': format4})
@@ -2722,10 +2722,10 @@ class SacerApp(tk.Frame):
                 return 0
 
             """create a new column in the series frame for every definition (minus, bet, plus, valor)"""
-            series['minus'] = series.swifter.apply(lambda row: minus(row), axis=1)
-            series['bet'] = series.swifter.apply(lambda row: bet(row), axis=1)
-            series['plus'] = series.swifter.apply(lambda row: plus(row), axis=1)
-            series['valor'] = series.swifter.apply(lambda row: valor(row), axis=1)
+            series['minus'] = series.apply(lambda row: minus(row), axis=1)
+            series['bet'] = series.apply(lambda row: bet(row), axis=1)
+            series['plus'] = series.apply(lambda row: plus(row), axis=1)
+            series['valor'] = series.apply(lambda row: valor(row), axis=1)
 
             fig = plt.figure()
             """111 means 1x1 grid, first subplot, so it will put every subplot in the same figure"""
@@ -2779,7 +2779,7 @@ class SacerApp(tk.Frame):
                 """Get the dimensions of the dataframe."""
                 (max_row, max_col) = df_final4.shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet.conditional_format(0, 5, 0, int(max_col),
                                              {'type': 'no_errors',
                                               'format': format4})
@@ -2987,10 +2987,10 @@ class SacerApp(tk.Frame):
                     return 0
 
                 """create a new column in the series frame for every definition (minus, bet, plus, valor)"""
-                series['minus'] = series.swifter.apply(lambda row: minus(row), axis=1)
-                series['bet'] = series.swifter.apply(lambda row: bet(row), axis=1)
-                series['plus'] = series.swifter.apply(lambda row: plus(row), axis=1)
-                series['valor'] = series.swifter.apply(lambda row: valor(row), axis=1)
+                series['minus'] = series.apply(lambda row: minus(row), axis=1)
+                series['bet'] = series.apply(lambda row: bet(row), axis=1)
+                series['plus'] = series.apply(lambda row: plus(row), axis=1)
+                series['valor'] = series.apply(lambda row: valor(row), axis=1)
 
                 fig = plt.figure()
                 """111 means 1x1 grid, first subplot, so it will put every subplot in the same figure"""
@@ -3044,7 +3044,7 @@ class SacerApp(tk.Frame):
                     """Get the dimensions of the dataframe."""
                     (max_row, max_col) = df_final8.shape
 
-                    """swifter.apply a conditional format to the required cell range."""
+                    """apply a conditional format to the required cell range."""
                     worksheet.conditional_format(0, 3, 0, int(max_col),
                                                  {'type': 'no_errors',
                                                   'format': format4})
@@ -3279,11 +3279,11 @@ class SacerApp(tk.Frame):
                 return 0
 
             """create a new column in the series frame for every definition (minus, bet, plus, valor, aut)"""
-            series['minus'] = series.swifter.apply(lambda row: minus(row), axis=1)
-            series['bet'] = series.swifter.apply(lambda row: bet(row), axis=1)
-            series['plus'] = series.swifter.apply(lambda row: plus(row), axis=1)
-            series['valor'] = series.swifter.apply(lambda row: valor(row), axis=1)
-            series['aut'] = series.swifter.apply(lambda row: aut(row), axis=1)
+            series['minus'] = series.apply(lambda row: minus(row), axis=1)
+            series['bet'] = series.apply(lambda row: bet(row), axis=1)
+            series['plus'] = series.apply(lambda row: plus(row), axis=1)
+            series['valor'] = series.apply(lambda row: valor(row), axis=1)
+            series['aut'] = series.apply(lambda row: aut(row), axis=1)
 
             fig = plt.figure()
             """111 means 1x1 grid, first subplot, so it will put every subplot in the same figure"""
@@ -3375,7 +3375,7 @@ class SacerApp(tk.Frame):
                     columns={'Fecha_inicio': 'Inicio Autorización', 'Fecha_fin': 'Fin Autorización'}).drop(
                     columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet1.conditional_format(1, 1, int(max_row1), int(max_col1),
                                               {'type': 'no_errors',
                                                'format': format5})
@@ -3384,7 +3384,7 @@ class SacerApp(tk.Frame):
                 """Get the dimensions of the dataframe."""
                 (max_row, max_col) = df_final3.shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet.conditional_format(0, 5, 0, int(max_col),
                                              {'type': 'no_errors',
                                               'format': format4})
@@ -3697,11 +3697,11 @@ class SacerApp(tk.Frame):
                 return 0
 
             """create a new column in the series frame for every definition (minus, bet, plus, valor, aut)"""
-            series['minus'] = series.swifter.apply(lambda row: minus(row), axis=1)
-            series['bet'] = series.swifter.apply(lambda row: bet(row), axis=1)
-            series['plus'] = series.swifter.apply(lambda row: plus(row), axis=1)
-            series['valor'] = series.swifter.apply(lambda row: valor(row), axis=1)
-            series['aut'] = series.swifter.apply(lambda row: aut(row), axis=1)
+            series['minus'] = series.apply(lambda row: minus(row), axis=1)
+            series['bet'] = series.apply(lambda row: bet(row), axis=1)
+            series['plus'] = series.apply(lambda row: plus(row), axis=1)
+            series['valor'] = series.apply(lambda row: valor(row), axis=1)
+            series['aut'] = series.apply(lambda row: aut(row), axis=1)
 
             fig = plt.figure()
             """111 means 1x1 grid, first subplot, so it will put every subplot in the same figure"""
@@ -3793,7 +3793,7 @@ class SacerApp(tk.Frame):
                     columns={'Fecha_inicio': 'Inicio Autorización', 'Fecha_fin': 'Fin Autorización'}).drop(
                     columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet1.conditional_format(1, 1, int(max_row1), int(max_col1),
                                               {'type': 'no_errors',
                                                'format': format5})
@@ -3802,7 +3802,7 @@ class SacerApp(tk.Frame):
                 """Get the dimensions of the dataframe."""
                 (max_row, max_col) = df_final4.shape
 
-                """swifter.apply a conditional format to the required cell range."""
+                """apply a conditional format to the required cell range."""
                 worksheet.conditional_format(0, 5, 0, int(max_col),
                                              {'type': 'no_errors',
                                               'format': format4})
@@ -4070,11 +4070,11 @@ class SacerApp(tk.Frame):
                     return 0
 
                 """create a new column in the series frame for every definition (minus, bet, plus, valor)"""
-                series['minus'] = series.swifter.apply(lambda row: minus(row), axis=1)
-                series['bet'] = series.swifter.apply(lambda row: bet(row), axis=1)
-                series['plus'] = series.swifter.apply(lambda row: plus(row), axis=1)
-                series['valor'] = series.swifter.apply(lambda row: valor(row), axis=1)
-                series['aut'] = series.swifter.apply(lambda row: aut(row), axis=1)
+                series['minus'] = series.apply(lambda row: minus(row), axis=1)
+                series['bet'] = series.apply(lambda row: bet(row), axis=1)
+                series['plus'] = series.apply(lambda row: plus(row), axis=1)
+                series['valor'] = series.apply(lambda row: valor(row), axis=1)
+                series['aut'] = series.apply(lambda row: aut(row), axis=1)
 
                 fig = plt.figure()
                 """111 means 1x1 grid, first subplot, so it will put every subplot in the same figure"""
@@ -4166,7 +4166,7 @@ class SacerApp(tk.Frame):
                         columns={'Fecha_inicio': 'Inicio Autorización', 'Fecha_fin': 'Fin Autorización'}).drop(
                         columns=['DIAS SOLICITADOS', 'DIAS AUTORIZADOS', 'Tiempo']).shape
 
-                    """swifter.apply a conditional format to the required cell range."""
+                    """apply a conditional format to the required cell range."""
                     worksheet1.conditional_format(1, 1, int(max_row1), int(max_col1),
                                                   {'type': 'no_errors',
                                                    'format': format5})
@@ -4175,7 +4175,7 @@ class SacerApp(tk.Frame):
                     """Get the dimensions of the dataframe."""
                     (max_row, max_col) = df_final8.shape
 
-                    """swifter.apply a conditional format to the required cell range."""
+                    """apply a conditional format to the required cell range."""
                     worksheet.conditional_format(0, 3, 0, int(max_col),
                                                  {'type': 'no_errors',
                                                   'format': format4})
