@@ -205,9 +205,6 @@ class SacerApp(tk.Frame):
         """Define button0 state conditions"""
         if self.RepGen.get():
             self.button1.config(state=tk.DISABLED)
-            self.Umbral_AM.config(state=tk.DISABLED)
-            self.Umbral_FM.config(state=tk.DISABLED)
-            self.Umbral_TV.config(state=tk.DISABLED)
             self.button2.config(state=tk.DISABLED)
             self.option_menu2.config(state=tk.DISABLED)
             self.button3.config(state=tk.DISABLED)
@@ -216,8 +213,6 @@ class SacerApp(tk.Frame):
             self.option_menu4.config(state=tk.DISABLED)
         else:
             self.button1.config(state=tk.NORMAL)
-            self.Umbral_FM.config(state=tk.NORMAL)
-            self.Umbral_TV.config(state=tk.NORMAL)
             self.button3.config(state=tk.NORMAL)
             self.option_menu3.config(state=tk.NORMAL)
             self.button4.config(state=tk.NORMAL)
@@ -334,6 +329,23 @@ class SacerApp(tk.Frame):
         Ciudad = self.Ciudad.get()
         fecha_inicio = self.fecha_inicio.get_date().strftime("%Y-%m-%d")
         fecha_fin = self.fecha_fin.get_date().strftime("%Y-%m-%d")
+
+        RepGen = self.RepGen.get()
+        if RepGen == True:
+            if self.Umbral_AM.get() == '':
+                Umbral_AM = float(0)
+            else:
+                Umbral_AM = float(self.Umbral_AM.get())
+
+            if self.Umbral_FM.get() == '':
+                Umbral_FM = float(0)
+            else:
+                Umbral_FM = float(self.Umbral_FM.get())
+
+            if self.Umbral_TV.get() == '':
+                Umbral_TV = float(0)
+            else:
+                Umbral_TV = float(self.Umbral_TV.get())
 
         Ocupacion = self.Ocupacion.get()
         if Ocupacion == True:
@@ -897,6 +909,263 @@ class SacerApp(tk.Frame):
                     df_final9
                 df_final9 = df_final9.rename(columns={'Param': 'Parámetro'}).set_index('Parámetro')
 
+            """REPORTE OCUPACIÓN"""
+
+            """Drop columns in df9 according to the requirements for the final report (FM broadcasting)"""
+            df13 = df9.drop(columns=['Offset (Hz)', 'FM (Hz)', 'Bandwidth (Hz)', 'Estación', 'Potencia', 'BW Asignado'])
+            df13 = df13.rename(columns={'Tiempo': 'tiempo', 'Frecuencia (Hz)': 'freq', 'Level (dBµV/m)': 'level'})
+
+            """Drop columns in df10 according to the requirements for the final report (TV broadcasting)"""
+            df14 = df10.drop(
+                columns=['Offset (Hz)', 'AM (%)', 'Bandwidth (Hz)', 'Estación', 'Canal (Número)', 'Analógico/Digital'])
+            df14 = df14.rename(columns={'Tiempo': 'tiempo', 'Frecuencia (Hz)': 'freq', 'Level (dBµV/m)': 'level'})
+
+            if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
+                """Drop columns in df17 according to the requirements for the final report (AM broadcasting)"""
+                df18 = df17.drop(columns=['Offset (Hz)', 'AM (%)', 'Bandwidth (Hz)', 'Estación'])
+                df18 = df18.rename(columns={'Tiempo': 'tiempo', 'Frecuencia (Hz)': 'freq', 'Level (dBµV/m)': 'level'})
+
+            df13["tiempo"] = pd.to_datetime(df13["tiempo"], format='%d/%m/%Y %H:%M:%S.%f')
+            df19 = df13[(df13.tiempo >= fecha_inicio) & (df13.tiempo <= fecha_fin)]
+
+            df14["tiempo"] = pd.to_datetime(df14["tiempo"], format='%d/%m/%Y %H:%M:%S.%f')
+            df20 = df14[(df14.tiempo >= fecha_inicio) & (df14.tiempo <= fecha_fin)]
+
+            if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
+                df18["tiempo"] = pd.to_datetime(df18["tiempo"], format='%d/%m/%Y %H:%M:%S.%f')
+                df21 = df18[(df18.tiempo >= fecha_inicio) & (df18.tiempo <= fecha_fin)]
+
+            def threshold_level(row, threshold):
+                """function to return level value if is >= to the selected threshold"""
+                return row['level'] if row['level'] >= threshold else None
+
+            fecha_init = fecha_inicio.strftime('%Y-%m-%d')
+            fecha_end = fecha_fin.strftime('%Y-%m-%d')
+
+            """contar1: dataframe with the occupation by frequency (FM broadcasting)"""
+            series1 = df19.drop(columns=['tiempo']).copy()
+            series1['above_threshold'] = series1.apply(threshold_level, axis=1, threshold=Umbral_FM)
+            occupation_counts1 = series1.groupby('freq').agg(total_measurements=('level', 'count'),
+                                                             above_threshold_count=('above_threshold', 'count'))
+            occupation_counts1['occupation'] = ((occupation_counts1['above_threshold_count'] / occupation_counts1[
+                'total_measurements']) * 100).round(6)
+            contar1 = occupation_counts1.drop(columns=['total_measurements', 'above_threshold_count'])
+            contar1 = contar1.rename(
+                columns={'occupation': 'Ocupación (%)', 'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
+
+            # Assuming df19['freq'] is sorted and numeric
+            freq_values = df19['freq'].unique()
+            freq_dict = {freq: i for i, freq in enumerate(freq_values)}
+
+            # Convert 'freq' in df19 to a categorical type with the categories based on the unique frequency values
+            df19['freq'] = pd.Categorical(df19['freq'], categories=freq_values, ordered=True)
+
+            # Visualization
+            fig, axes = plt.subplot_mosaic([['scatter'], ['heatmap']], constrained_layout=True,
+                                           gridspec_kw={'height_ratios': [1, 2]})
+
+            # First plot: Occupation by Frequency
+            # Use the mapped x-values for vlines and scatter points
+            for freq, occupation in occupation_counts1['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the cells
+                axes['scatter'].vlines(x=xpos, ymin=0, ymax=occupation, color='steelblue', alpha=0.7, linewidth=2)
+                axes['scatter'].scatter(x=xpos, y=occupation, s=75, color='steelblue', alpha=0.7)
+
+            axes['scatter'].set_title(
+                f'Banda: Radiodifusión FM, Ciudad: {Ciudad}, Umbral: {Umbral_FM} dBµV/m, Periodo: {fecha_init} a {fecha_end}',
+                fontsize=16)
+            axes['scatter'].set_ylabel('Ocupación (%)')
+            axes['scatter'].set_ylim(0, 100)
+            axes['scatter'].grid(color='gray', linestyle='--', linewidth=0.5)
+
+            # Set the y-ticks and labels for the scatter plot with adjusted font size
+            yticklabels = axes['scatter'].get_yticks().tolist()  # Get the current y-tick labels
+            axes['scatter'].set_yticklabels(yticklabels, fontsize=8)  # Adjust fontsize as needed
+
+            # Set x-ticks and labels for both plots
+            # Calculate the middle position for each frequency
+            mid_positions = np.arange(len(freq_values)) + 0.5
+
+            axes['scatter'].set_xticks(mid_positions)
+            axes['scatter'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['scatter'].set_xlim(0, len(freq_values))
+
+            # Annotate scatter plot without decimals
+            for freq, occupation in occupation_counts1['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the heatmap cells
+                axes['scatter'].text(xpos, occupation + 1, s=str(int(occupation)),
+                                     horizontalalignment='center', verticalalignment='bottom', fontsize=8)
+
+            # Second plot: Heatmap of Level over Time by Frequency
+            heatmap_data1 = df19.pivot_table(values='level', index='tiempo', columns='freq').sort_index(ascending=False)
+            sns.heatmap(heatmap_data1, cmap='rainbow', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+            # Set the x-ticks and labels for the heatmap
+            axes['heatmap'].set_xticks(mid_positions)
+            axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['heatmap'].set_xlim(0, len(freq_values))
+
+            # Adjust the y-tick labels font size
+            yticklabels = axes['heatmap'].get_yticklabels()
+            axes['heatmap'].set_yticklabels(yticklabels, fontsize=8)
+
+            axes['scatter'].tick_params(labelbottom=False)
+            axes['heatmap'].set_xlabel('Frecuencia (Hz)')
+            axes['heatmap'].set_ylabel('Tiempo')
+
+            # Save the combined plot to a single image
+            plt.savefig('image1.png')
+            plt.close()
+
+            """contar2: dataframe with the occupation by frequency (TV broadcasting)"""
+            series2 = df20.drop(columns=['tiempo']).copy()
+            series2['above_threshold'] = series2.apply(threshold_level, axis=1, threshold=Umbral_TV)
+            occupation_counts2 = series2.groupby('freq').agg(total_measurements=('level', 'count'),
+                                                             above_threshold_count=('above_threshold', 'count'))
+            occupation_counts2['occupation'] = ((occupation_counts2['above_threshold_count'] / occupation_counts2[
+                'total_measurements']) * 100).round(6)
+            contar2 = occupation_counts2.drop(columns=['total_measurements', 'above_threshold_count'])
+            contar2 = contar2.rename(
+                columns={'occupation': 'Ocupación (%)', 'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
+
+            # Assuming df20['freq'] is sorted and numeric
+            freq_values = df20['freq'].unique()
+            freq_dict = {freq: i for i, freq in enumerate(freq_values)}
+
+            # Convert 'freq' in df20 to a categorical type with the categories based on the unique frequency values
+            df20['freq'] = pd.Categorical(df20['freq'], categories=freq_values, ordered=True)
+
+            # Visualization
+            fig, axes = plt.subplot_mosaic([['scatter'], ['heatmap']], constrained_layout=True,
+                                           gridspec_kw={'height_ratios': [1, 2]})
+
+            # First plot: Occupation by Frequency
+            # Use the mapped x-values for vlines and scatter points
+            for freq, occupation in occupation_counts2['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the cells
+                axes['scatter'].vlines(x=xpos, ymin=0, ymax=occupation, color='steelblue', alpha=0.7, linewidth=2)
+                axes['scatter'].scatter(x=xpos, y=occupation, s=75, color='steelblue', alpha=0.7)
+
+            axes['scatter'].set_title(
+                f'Banda: Televisión, Ciudad: {Ciudad}, Umbral: {Umbral_TV} dBµV/m, Periodo: {fecha_init} a {fecha_end}',
+                fontsize=16)
+            axes['scatter'].set_ylabel('Ocupación (%)')
+            axes['scatter'].set_ylim(0, 100)
+            axes['scatter'].grid(color='gray', linestyle='--', linewidth=0.5)
+
+            # Set the y-ticks and labels for the scatter plot with adjusted font size
+            yticklabels = axes['scatter'].get_yticks().tolist()  # Get the current y-tick labels
+            axes['scatter'].set_yticklabels(yticklabels, fontsize=8)  # Adjust fontsize as needed
+
+            # Set x-ticks and labels for both plots
+            # Calculate the middle position for each frequency
+            mid_positions = np.arange(len(freq_values)) + 0.5
+
+            axes['scatter'].set_xticks(mid_positions)
+            axes['scatter'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['scatter'].set_xlim(0, len(freq_values))
+
+            # Annotate scatter plot without decimals
+            for freq, occupation in occupation_counts2['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the heatmap cells
+                axes['scatter'].text(xpos, occupation + 1, s=str(int(occupation)),
+                                     horizontalalignment='center', verticalalignment='bottom', fontsize=8)
+
+            # Second plot: Heatmap of Level over Time by Frequency
+            heatmap_data2 = df20.pivot_table(values='level', index='tiempo', columns='freq').sort_index(ascending=False)
+            sns.heatmap(heatmap_data2, cmap='rainbow', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+            # Set the x-ticks and labels for the heatmap
+            axes['heatmap'].set_xticks(mid_positions)
+            axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['heatmap'].set_xlim(0, len(freq_values))
+
+            # Adjust the y-tick labels font size
+            yticklabels = axes['heatmap'].get_yticklabels()
+            axes['heatmap'].set_yticklabels(yticklabels, fontsize=8)
+
+            axes['scatter'].tick_params(labelbottom=False)
+            axes['heatmap'].set_xlabel('Frecuencia (Hz)')
+            axes['heatmap'].set_ylabel('Tiempo')
+
+            # Save the combined plot to a single image
+            plt.savefig('image2.png')
+            plt.close()
+
+            if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
+                """contar3: dataframe with the occupation by frequency (AM broadcasting)"""
+                series3 = df21.drop(columns=['tiempo']).copy()
+                series3['above_threshold'] = series3.apply(threshold_level, axis=1, threshold=Umbral_AM)
+                occupation_counts3 = series3.groupby('freq').agg(total_measurements=('level', 'count'),
+                                                                 above_threshold_count=('above_threshold', 'count'))
+                occupation_counts3['occupation'] = ((occupation_counts3['above_threshold_count'] / occupation_counts3[
+                    'total_measurements']) * 100).round(6)
+                contar3 = occupation_counts3.drop(columns=['total_measurements', 'above_threshold_count'])
+                contar3 = contar3.rename(
+                    columns={'occupation': 'Ocupación (%)', 'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
+
+                # Assuming df21['freq'] is sorted and numeric
+                freq_values = df21['freq'].unique()
+                freq_dict = {freq: i for i, freq in enumerate(freq_values)}
+
+                # Convert 'freq' in df21 to a categorical type with the categories based on the unique frequency values
+                df21['freq'] = pd.Categorical(df21['freq'], categories=freq_values, ordered=True)
+
+                # Visualization
+                fig, axes = plt.subplot_mosaic([['scatter'], ['heatmap']], constrained_layout=True,
+                                               gridspec_kw={'height_ratios': [1, 2]})
+
+                # First plot: Occupation by Frequency
+                # Use the mapped x-values for vlines and scatter points
+                for freq, occupation in occupation_counts3['occupation'].items():
+                    xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the cells
+                    axes['scatter'].vlines(x=xpos, ymin=0, ymax=occupation, color='steelblue', alpha=0.7, linewidth=2)
+                    axes['scatter'].scatter(x=xpos, y=occupation, s=75, color='steelblue', alpha=0.7)
+
+                axes['scatter'].set_title(
+                    f'Banda: Radiodifusión AM, Ciudad: {Ciudad}, Umbral: {Umbral_AM} dBµV/m, Periodo: {fecha_init} a {fecha_end}',
+                    fontsize=16)
+                axes['scatter'].set_ylabel('Ocupación (%)')
+                axes['scatter'].set_ylim(0, 100)
+                axes['scatter'].grid(color='gray', linestyle='--', linewidth=0.5)
+
+                # Set the y-ticks and labels for the scatter plot with adjusted font size
+                yticklabels = axes['scatter'].get_yticks().tolist()  # Get the current y-tick labels
+                axes['scatter'].set_yticklabels(yticklabels, fontsize=8)  # Adjust fontsize as needed
+
+                # Set x-ticks and labels for both plots
+                # Calculate the middle position for each frequency
+                mid_positions = np.arange(len(freq_values)) + 0.5
+
+                axes['scatter'].set_xticks(mid_positions)
+                axes['scatter'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+                axes['scatter'].set_xlim(0, len(freq_values))
+
+                # Annotate scatter plot without decimals
+                for freq, occupation in occupation_counts3['occupation'].items():
+                    xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the heatmap cells
+                    axes['scatter'].text(xpos, occupation + 1, s=str(int(occupation)),
+                                         horizontalalignment='center', verticalalignment='bottom', fontsize=8)
+
+                # Second plot: Heatmap of Level over Time by Frequency
+                heatmap_data2 = df21.pivot_table(values='level', index='tiempo', columns='freq').sort_index(
+                    ascending=False)
+                sns.heatmap(heatmap_data2, cmap='rainbow', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+                # Set the x-ticks and labels for the heatmap
+                axes['heatmap'].set_xticks(mid_positions)
+                axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+                axes['heatmap'].set_xlim(0, len(freq_values))
+
+                # Adjust the y-tick labels font size
+                yticklabels = axes['heatmap'].get_yticklabels()
+                axes['heatmap'].set_yticklabels(yticklabels, fontsize=8)
+
+                axes['scatter'].tick_params(labelbottom=False)
+                axes['heatmap'].set_xlabel('Frecuencia (Hz)')
+                axes['heatmap'].set_ylabel('Tiempo')
+
+                # Save the combined plot to a single image
+                plt.savefig('image3.png')
+                plt.close()
+
             # EXCEL REPORT CREATION: REPORTE GENERAL
             # create, write and save
             with pd.ExcelWriter(f'{download_route}/RTV_Verificación de parámetros.xlsx') as writer:
@@ -904,6 +1173,11 @@ class SacerApp(tk.Frame):
                 df_final6.to_excel(writer, sheet_name='Televisión')
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
                     df_final9.to_excel(writer, sheet_name='Radiodifusión AM')
+
+                contar1.to_excel(writer, sheet_name='OC_Radiodifusión FM')
+                contar2.to_excel(writer, sheet_name='OC_Televisión')
+                if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
+                    contar3.to_excel(writer, sheet_name='OC_Radiodifusión AM')
 
                 if Year1 == Year2 and Mes_inicio == Mes_fin:
                     df_original1.to_excel(writer, sheet_name='Mediciones FM')
@@ -918,8 +1192,11 @@ class SacerApp(tk.Frame):
                 workbook = writer.book
                 worksheet = writer.sheets['Radiodifusión FM']
                 worksheet1 = writer.sheets['Televisión']
+                worksheet6 = writer.sheets['OC_Radiodifusión FM']
+                worksheet7 = writer.sheets['OC_Televisión']
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
                     worksheet4 = writer.sheets['Radiodifusión AM']
+                    worksheet8 = writer.sheets['OC_Radiodifusión AM']
 
                 # Add a format.
                 format1 = workbook.add_format({'bg_color': '#C6EFCE',
@@ -934,6 +1211,8 @@ class SacerApp(tk.Frame):
 
                 format6 = workbook.add_format({'bg_color': '#99CCFF',
                                                'font_color': '#0066FF'})
+                format7 = workbook.add_format({'border': 1, 'border_color': 'black'})
+                format8 = workbook.add_format({'bold': True})
 
                 # Get the dimensions of the dataframe (FM broadcasting).
                 (max_row, max_col) = df_final5.drop(['Observaciones'], axis=1).shape
@@ -1049,7 +1328,7 @@ class SacerApp(tk.Frame):
                 worksheet.write('B216',
                                 '- Nota 2.- Las mediciones de Ancho de Banda obtenidas con el SACER son únicamente referenciales. La Unión Internacional de Telecomunicaciones – UIT, a través del Manual COMPROBACIÓN TÉCNICA DEL ESPECTRO RADIOELÉCTRICO (numeral 4.5.3) define las condiciones que deben tenerse en cuenta al medir la anchura de banda, señalando: “(…) a causa de las imprecisiones debidas a las razones expuestas, estas mediciones a distancia sólo son útiles a título indicativo. Cuando se requiera una mayor precisión, es conveniente que las mediciones se realicen en las inmediaciones del transmisor.”.')
                 worksheet.write('B217',
-                                f'- Nota 3.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar sujeta a los resultados de las mediciones del siguiente mes.')
+                                f'- Nota 3.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar surainbowa a los resultados de las mediciones del siguiente mes.')
 
                 # Get the dimensions of the dataframe (TV broadcasting).
                 (max_row1, max_col1) = df_final6.drop(['Observaciones'], axis=1).shape
@@ -1138,7 +1417,43 @@ class SacerApp(tk.Frame):
                 worksheet1.write('B55',
                                  f'- Nota 1.- En apego a la Resolución ST-2014-0257 referida en los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), se considera que un control individual a una estación RTV es pertinente cuando esta ha suspendido emisiones por más de 8 días.')
                 worksheet1.write('B56',
-                                 f'- Nota 2.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar sujeta a los resultados de las mediciones del siguiente mes.')
+                                 f'- Nota 2.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar surainbowa a los resultados de las mediciones del siguiente mes.')
+
+                """Get the dimensions of the dataframe (FM broadcasting)."""
+                (max_row6, max_col6) = contar1.shape
+
+                """apply a conditional format to the required cell range."""
+                worksheet6.conditional_format(0, 1, int(max_row6), int(max_col6),
+                                              {'type': 'no_errors',
+                                               'format': format7})
+                worksheet6.autofilter(0, 0, 0, int(max_col6))
+
+                worksheet6.write('C1', 'Umbral (dBµV/m)')
+                worksheet6.write('C2', float(Umbral_FM))
+
+                worksheet6.conditional_format('C1:C2', {'type': 'no_errors',
+                                                        'format': format7})
+                worksheet6.conditional_format('C1', {'type': 'no_errors',
+                                                     'format': format8})
+                worksheet6.insert_image('E1', 'image1.png')
+
+                """Get the dimensions of the dataframe (TV broadcasting)."""
+                (max_row7, max_col7) = contar2.shape
+
+                """apply a conditional format to the required cell range."""
+                worksheet7.conditional_format(0, 1, int(max_row7), int(max_col7),
+                                              {'type': 'no_errors',
+                                               'format': format7})
+                worksheet7.autofilter(0, 0, 0, int(max_col7))
+
+                worksheet7.write('C1', 'Umbral (dBµV/m)')
+                worksheet7.write('C2', float(Umbral_TV))
+
+                worksheet7.conditional_format('C1:C2', {'type': 'no_errors',
+                                                        'format': format7})
+                worksheet7.conditional_format('C1', {'type': 'no_errors',
+                                                     'format': format8})
+                worksheet7.insert_image('E1', 'image2.png')
 
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
                     # Get the dimensions of the dataframe (AM broadcasting).
@@ -1206,7 +1521,25 @@ class SacerApp(tk.Frame):
                     worksheet4.write('B97',
                                      '- Nota 2.- Las mediciones de Ancho de Banda obtenidas con el SACER son únicamente referenciales. La Unión Internacional de Telecomunicaciones – UIT, a través del Manual COMPROBACIÓN TÉCNICA DEL ESPECTRO RADIOELÉCTRICO (numeral 4.5.3) define las condiciones que deben tenerse en cuenta al medir la anchura de banda, señalando: “(…) a causa de las imprecisiones debidas a las razones expuestas, estas mediciones a distancia sólo son útiles a título indicativo. Cuando se requiera una mayor precisión, es conveniente que las mediciones se realicen en las inmediaciones del transmisor.”.')
                     worksheet4.write('B98',
-                                     f'- Nota 3.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar sujeta a los resultados de las mediciones del siguiente mes.')
+                                     f'- Nota 3.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar surainbowa a los resultados de las mediciones del siguiente mes.')
+
+                    """Get the dimensions of the dataframe (AM broadcasting)."""
+                    (max_row8, max_col8) = contar3.shape
+
+                    """apply a conditional format to the required cell range."""
+                    worksheet8.conditional_format(0, 1, int(max_row8), int(max_col8),
+                                                  {'type': 'no_errors',
+                                                   'format': format7})
+                    worksheet8.autofilter(0, 0, 0, int(max_col8))
+
+                    worksheet8.write('C1', 'Umbral (dBµV/m)')
+                    worksheet8.write('C2', float(Umbral_AM))
+
+                    worksheet8.conditional_format('C1:C2', {'type': 'no_errors',
+                                                            'format': format7})
+                    worksheet8.conditional_format('C1', {'type': 'no_errors',
+                                                         'format': format8})
+                    worksheet8.insert_image('E1', 'image3.png')
 
                     if Year1 == Year2 and Mes_inicio == Mes_fin:
                         # Get the dimensions of the dataframe (FM broadcasting).
@@ -1252,6 +1585,12 @@ class SacerApp(tk.Frame):
             # Rename the file
             os.rename(f'{download_route}/{old_name}',
                       f'{download_route}/{new_name}')
+
+            """Remove image files"""
+            os.remove('image1.png')
+            os.remove('image2.png')
+            if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
+                os.remove('image3.png')
 
         elif Ocupacion == False and AM_Reporte_individual == False and FM_Reporte_individual == False and TV_Reporte_individual == False and Autorizaciones == True:
             # REPORTE GENERAL AUTORIZACIONES
@@ -1471,6 +1810,263 @@ class SacerApp(tk.Frame):
                     df_final9
                 df_final9 = df_final9.rename(columns={'Param': 'Parámetro'}).set_index('Parámetro')
 
+            """REPORTE OCUPACIÓN"""
+
+            """Drop columns in df9 according to the requirements for the final report (FM broadcasting)"""
+            df13 = df9.drop(columns=['Offset (Hz)', 'FM (Hz)', 'Bandwidth (Hz)', 'Estación', 'Potencia', 'BW Asignado'])
+            df13 = df13.rename(columns={'Tiempo': 'tiempo', 'Frecuencia (Hz)': 'freq', 'Level (dBµV/m)': 'level'})
+
+            """Drop columns in df10 according to the requirements for the final report (TV broadcasting)"""
+            df14 = df10.drop(
+                columns=['Offset (Hz)', 'AM (%)', 'Bandwidth (Hz)', 'Estación', 'Canal (Número)', 'Analógico/Digital'])
+            df14 = df14.rename(columns={'Tiempo': 'tiempo', 'Frecuencia (Hz)': 'freq', 'Level (dBµV/m)': 'level'})
+
+            if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
+                """Drop columns in df17 according to the requirements for the final report (AM broadcasting)"""
+                df18 = df17.drop(columns=['Offset (Hz)', 'AM (%)', 'Bandwidth (Hz)', 'Estación'])
+                df18 = df18.rename(columns={'Tiempo': 'tiempo', 'Frecuencia (Hz)': 'freq', 'Level (dBµV/m)': 'level'})
+
+            df13["tiempo"] = pd.to_datetime(df13["tiempo"], format='%d/%m/%Y %H:%M:%S.%f')
+            df19 = df13[(df13.tiempo >= fecha_inicio) & (df13.tiempo <= fecha_fin)]
+
+            df14["tiempo"] = pd.to_datetime(df14["tiempo"], format='%d/%m/%Y %H:%M:%S.%f')
+            df20 = df14[(df14.tiempo >= fecha_inicio) & (df14.tiempo <= fecha_fin)]
+
+            if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
+                df18["tiempo"] = pd.to_datetime(df18["tiempo"], format='%d/%m/%Y %H:%M:%S.%f')
+                df21 = df18[(df18.tiempo >= fecha_inicio) & (df18.tiempo <= fecha_fin)]
+
+            def threshold_level(row, threshold):
+                """function to return level value if is >= to the selected threshold"""
+                return row['level'] if row['level'] >= threshold else None
+
+            fecha_init = fecha_inicio.strftime('%Y-%m-%d')
+            fecha_end = fecha_fin.strftime('%Y-%m-%d')
+
+            """contar1: dataframe with the occupation by frequency (FM broadcasting)"""
+            series1 = df19.drop(columns=['tiempo']).copy()
+            series1['above_threshold'] = series1.apply(threshold_level, axis=1, threshold=Umbral_FM)
+            occupation_counts1 = series1.groupby('freq').agg(total_measurements=('level', 'count'),
+                                                             above_threshold_count=('above_threshold', 'count'))
+            occupation_counts1['occupation'] = ((occupation_counts1['above_threshold_count'] / occupation_counts1[
+                'total_measurements']) * 100).round(6)
+            contar1 = occupation_counts1.drop(columns=['total_measurements', 'above_threshold_count'])
+            contar1 = contar1.rename(
+                columns={'occupation': 'Ocupación (%)', 'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
+
+            # Assuming df19['freq'] is sorted and numeric
+            freq_values = df19['freq'].unique()
+            freq_dict = {freq: i for i, freq in enumerate(freq_values)}
+
+            # Convert 'freq' in df19 to a categorical type with the categories based on the unique frequency values
+            df19['freq'] = pd.Categorical(df19['freq'], categories=freq_values, ordered=True)
+
+            # Visualization
+            fig, axes = plt.subplot_mosaic([['scatter'], ['heatmap']], constrained_layout=True,
+                                           gridspec_kw={'height_ratios': [1, 2]})
+
+            # First plot: Occupation by Frequency
+            # Use the mapped x-values for vlines and scatter points
+            for freq, occupation in occupation_counts1['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the cells
+                axes['scatter'].vlines(x=xpos, ymin=0, ymax=occupation, color='steelblue', alpha=0.7, linewidth=2)
+                axes['scatter'].scatter(x=xpos, y=occupation, s=75, color='steelblue', alpha=0.7)
+
+            axes['scatter'].set_title(
+                f'Banda: Radiodifusión FM, Ciudad: {Ciudad}, Umbral: {Umbral_FM} dBµV/m, Periodo: {fecha_init} a {fecha_end}',
+                fontsize=16)
+            axes['scatter'].set_ylabel('Ocupación (%)')
+            axes['scatter'].set_ylim(0, 100)
+            axes['scatter'].grid(color='gray', linestyle='--', linewidth=0.5)
+
+            # Set the y-ticks and labels for the scatter plot with adjusted font size
+            yticklabels = axes['scatter'].get_yticks().tolist()  # Get the current y-tick labels
+            axes['scatter'].set_yticklabels(yticklabels, fontsize=8)  # Adjust fontsize as needed
+
+            # Set x-ticks and labels for both plots
+            # Calculate the middle position for each frequency
+            mid_positions = np.arange(len(freq_values)) + 0.5
+
+            axes['scatter'].set_xticks(mid_positions)
+            axes['scatter'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['scatter'].set_xlim(0, len(freq_values))
+
+            # Annotate scatter plot without decimals
+            for freq, occupation in occupation_counts1['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the heatmap cells
+                axes['scatter'].text(xpos, occupation + 1, s=str(int(occupation)),
+                                     horizontalalignment='center', verticalalignment='bottom', fontsize=8)
+
+            # Second plot: Heatmap of Level over Time by Frequency
+            heatmap_data1 = df19.pivot_table(values='level', index='tiempo', columns='freq').sort_index(ascending=False)
+            sns.heatmap(heatmap_data1, cmap='rainbow', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+            # Set the x-ticks and labels for the heatmap
+            axes['heatmap'].set_xticks(mid_positions)
+            axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['heatmap'].set_xlim(0, len(freq_values))
+
+            # Adjust the y-tick labels font size
+            yticklabels = axes['heatmap'].get_yticklabels()
+            axes['heatmap'].set_yticklabels(yticklabels, fontsize=8)
+
+            axes['scatter'].tick_params(labelbottom=False)
+            axes['heatmap'].set_xlabel('Frecuencia (Hz)')
+            axes['heatmap'].set_ylabel('Tiempo')
+
+            # Save the combined plot to a single image
+            plt.savefig('image1.png')
+            plt.close()
+
+            """contar2: dataframe with the occupation by frequency (TV broadcasting)"""
+            series2 = df20.drop(columns=['tiempo']).copy()
+            series2['above_threshold'] = series2.apply(threshold_level, axis=1, threshold=Umbral_TV)
+            occupation_counts2 = series2.groupby('freq').agg(total_measurements=('level', 'count'),
+                                                             above_threshold_count=('above_threshold', 'count'))
+            occupation_counts2['occupation'] = ((occupation_counts2['above_threshold_count'] / occupation_counts2[
+                'total_measurements']) * 100).round(6)
+            contar2 = occupation_counts2.drop(columns=['total_measurements', 'above_threshold_count'])
+            contar2 = contar2.rename(
+                columns={'occupation': 'Ocupación (%)', 'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
+
+            # Assuming df20['freq'] is sorted and numeric
+            freq_values = df20['freq'].unique()
+            freq_dict = {freq: i for i, freq in enumerate(freq_values)}
+
+            # Convert 'freq' in df20 to a categorical type with the categories based on the unique frequency values
+            df20['freq'] = pd.Categorical(df20['freq'], categories=freq_values, ordered=True)
+
+            # Visualization
+            fig, axes = plt.subplot_mosaic([['scatter'], ['heatmap']], constrained_layout=True,
+                                           gridspec_kw={'height_ratios': [1, 2]})
+
+            # First plot: Occupation by Frequency
+            # Use the mapped x-values for vlines and scatter points
+            for freq, occupation in occupation_counts2['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the cells
+                axes['scatter'].vlines(x=xpos, ymin=0, ymax=occupation, color='steelblue', alpha=0.7, linewidth=2)
+                axes['scatter'].scatter(x=xpos, y=occupation, s=75, color='steelblue', alpha=0.7)
+
+            axes['scatter'].set_title(
+                f'Banda: Televisión, Ciudad: {Ciudad}, Umbral: {Umbral_TV} dBµV/m, Periodo: {fecha_init} a {fecha_end}',
+                fontsize=16)
+            axes['scatter'].set_ylabel('Ocupación (%)')
+            axes['scatter'].set_ylim(0, 100)
+            axes['scatter'].grid(color='gray', linestyle='--', linewidth=0.5)
+
+            # Set the y-ticks and labels for the scatter plot with adjusted font size
+            yticklabels = axes['scatter'].get_yticks().tolist()  # Get the current y-tick labels
+            axes['scatter'].set_yticklabels(yticklabels, fontsize=8)  # Adjust fontsize as needed
+
+            # Set x-ticks and labels for both plots
+            # Calculate the middle position for each frequency
+            mid_positions = np.arange(len(freq_values)) + 0.5
+
+            axes['scatter'].set_xticks(mid_positions)
+            axes['scatter'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['scatter'].set_xlim(0, len(freq_values))
+
+            # Annotate scatter plot without decimals
+            for freq, occupation in occupation_counts2['occupation'].items():
+                xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the heatmap cells
+                axes['scatter'].text(xpos, occupation + 1, s=str(int(occupation)),
+                                     horizontalalignment='center', verticalalignment='bottom', fontsize=8)
+
+            # Second plot: Heatmap of Level over Time by Frequency
+            heatmap_data2 = df20.pivot_table(values='level', index='tiempo', columns='freq').sort_index(ascending=False)
+            sns.heatmap(heatmap_data2, cmap='rainbow', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+            # Set the x-ticks and labels for the heatmap
+            axes['heatmap'].set_xticks(mid_positions)
+            axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+            axes['heatmap'].set_xlim(0, len(freq_values))
+
+            # Adjust the y-tick labels font size
+            yticklabels = axes['heatmap'].get_yticklabels()
+            axes['heatmap'].set_yticklabels(yticklabels, fontsize=8)
+
+            axes['scatter'].tick_params(labelbottom=False)
+            axes['heatmap'].set_xlabel('Frecuencia (Hz)')
+            axes['heatmap'].set_ylabel('Tiempo')
+
+            # Save the combined plot to a single image
+            plt.savefig('image2.png')
+            plt.close()
+
+            if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
+                """contar3: dataframe with the occupation by frequency (AM broadcasting)"""
+                series3 = df21.drop(columns=['tiempo']).copy()
+                series3['above_threshold'] = series3.apply(threshold_level, axis=1, threshold=Umbral_AM)
+                occupation_counts3 = series3.groupby('freq').agg(total_measurements=('level', 'count'),
+                                                                 above_threshold_count=('above_threshold', 'count'))
+                occupation_counts3['occupation'] = ((occupation_counts3['above_threshold_count'] / occupation_counts3[
+                    'total_measurements']) * 100).round(6)
+                contar3 = occupation_counts3.drop(columns=['total_measurements', 'above_threshold_count'])
+                contar3 = contar3.rename(
+                    columns={'occupation': 'Ocupación (%)', 'freq': 'Frecuencia (Hz)', 'level': 'total_mediciones'})
+
+                # Assuming df21['freq'] is sorted and numeric
+                freq_values = df21['freq'].unique()
+                freq_dict = {freq: i for i, freq in enumerate(freq_values)}
+
+                # Convert 'freq' in df21 to a categorical type with the categories based on the unique frequency values
+                df21['freq'] = pd.Categorical(df21['freq'], categories=freq_values, ordered=True)
+
+                # Visualization
+                fig, axes = plt.subplot_mosaic([['scatter'], ['heatmap']], constrained_layout=True,
+                                               gridspec_kw={'height_ratios': [1, 2]})
+
+                # First plot: Occupation by Frequency
+                # Use the mapped x-values for vlines and scatter points
+                for freq, occupation in occupation_counts3['occupation'].items():
+                    xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the cells
+                    axes['scatter'].vlines(x=xpos, ymin=0, ymax=occupation, color='steelblue', alpha=0.7, linewidth=2)
+                    axes['scatter'].scatter(x=xpos, y=occupation, s=75, color='steelblue', alpha=0.7)
+
+                axes['scatter'].set_title(
+                    f'Banda: Radiodifusión AM, Ciudad: {Ciudad}, Umbral: {Umbral_AM} dBµV/m, Periodo: {fecha_init} a {fecha_end}',
+                    fontsize=16)
+                axes['scatter'].set_ylabel('Ocupación (%)')
+                axes['scatter'].set_ylim(0, 100)
+                axes['scatter'].grid(color='gray', linestyle='--', linewidth=0.5)
+
+                # Set the y-ticks and labels for the scatter plot with adjusted font size
+                yticklabels = axes['scatter'].get_yticks().tolist()  # Get the current y-tick labels
+                axes['scatter'].set_yticklabels(yticklabels, fontsize=8)  # Adjust fontsize as needed
+
+                # Set x-ticks and labels for both plots
+                # Calculate the middle position for each frequency
+                mid_positions = np.arange(len(freq_values)) + 0.5
+
+                axes['scatter'].set_xticks(mid_positions)
+                axes['scatter'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+                axes['scatter'].set_xlim(0, len(freq_values))
+
+                # Annotate scatter plot without decimals
+                for freq, occupation in occupation_counts3['occupation'].items():
+                    xpos = freq_dict[freq] + 0.5  # Shift position to align with the center of the heatmap cells
+                    axes['scatter'].text(xpos, occupation + 1, s=str(int(occupation)),
+                                         horizontalalignment='center', verticalalignment='bottom', fontsize=8)
+
+                # Second plot: Heatmap of Level over Time by Frequency
+                heatmap_data2 = df21.pivot_table(values='level', index='tiempo', columns='freq').sort_index(
+                    ascending=False)
+                sns.heatmap(heatmap_data2, cmap='rainbow', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+                # Set the x-ticks and labels for the heatmap
+                axes['heatmap'].set_xticks(mid_positions)
+                axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
+                axes['heatmap'].set_xlim(0, len(freq_values))
+
+                # Adjust the y-tick labels font size
+                yticklabels = axes['heatmap'].get_yticklabels()
+                axes['heatmap'].set_yticklabels(yticklabels, fontsize=8)
+
+                axes['scatter'].tick_params(labelbottom=False)
+                axes['heatmap'].set_xlabel('Frecuencia (Hz)')
+                axes['heatmap'].set_ylabel('Tiempo')
+
+                # Save the combined plot to a single image
+                plt.savefig('image3.png')
+                plt.close()
+
             """EXCEL REPORT CREATION: REPORTE GENERAL AUTORIZACIONES"""
             """create, write and save"""
             with pd.ExcelWriter(f'{download_route}/RTV_Verificación de parámetros.xlsx') as writer:
@@ -1478,6 +2074,11 @@ class SacerApp(tk.Frame):
                 df_final6.to_excel(writer, sheet_name='Televisión')
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
                     df_final9.to_excel(writer, sheet_name='Radiodifusión AM')
+
+                contar1.to_excel(writer, sheet_name='OC_Radiodifusión FM')
+                contar2.to_excel(writer, sheet_name='OC_Televisión')
+                if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
+                    contar3.to_excel(writer, sheet_name='OC_Radiodifusión AM')
 
                 """copy the column 'Tiempo' to a list and save it in col1"""
                 col1 = dfau6['Tiempo'].copy().tolist()
@@ -1532,10 +2133,13 @@ class SacerApp(tk.Frame):
                 workbook = writer.book
                 worksheet = writer.sheets['Radiodifusión FM']
                 worksheet1 = writer.sheets['Televisión']
+                worksheet9 = writer.sheets['OC_Radiodifusión FM']
+                worksheet10 = writer.sheets['OC_Televisión']
                 worksheet4 = writer.sheets['Autorizaciones FM']
                 worksheet5 = writer.sheets['Autorizaciones TV']
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
                     worksheet6 = writer.sheets['Radiodifusión AM']
+                    worksheet11 = writer.sheets['OC_Radiodifusión AM']
                     worksheet7 = writer.sheets['Autorizaciones AM']
 
                 """Add a format."""
@@ -1553,6 +2157,8 @@ class SacerApp(tk.Frame):
                                                'font_color': '#0066FF'})
                 format7 = workbook.add_format({'bg_color': '#C0C0C0',
                                                'font_color': '#000000'})
+                format8 = workbook.add_format({'border': 1, 'border_color': 'black'})
+                format9 = workbook.add_format({'bold': True})
 
                 """Get the dimensions of the dataframe (FM broadcasting)."""
                 (max_row4, max_col4) = dfau6.drop(
@@ -1715,7 +2321,7 @@ class SacerApp(tk.Frame):
                 worksheet.write('B318',
                                 '- Nota 2.- Las mediciones de Ancho de Banda obtenidas con el SACER son únicamente referenciales. La Unión Internacional de Telecomunicaciones – UIT, a través del Manual COMPROBACIÓN TÉCNICA DEL ESPECTRO RADIOELÉCTRICO (numeral 4.5.3) define las condiciones que deben tenerse en cuenta al medir la anchura de banda, señalando: “(…) a causa de las imprecisiones debidas a las razones expuestas, estas mediciones a distancia sólo son útiles a título indicativo. Cuando se requiera una mayor precisión, es conveniente que las mediciones se realicen en las inmediaciones del transmisor.”.')
                 worksheet.write('B319',
-                                f'- Nota 3.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar sujeta a los resultados de las mediciones del siguiente mes.')
+                                f'- Nota 3.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar surainbowa a los resultados de las mediciones del siguiente mes.')
 
                 for row in range(int((max_row * 2) + 1), int((max_row * 3) + 1)):
                     worksheet.set_row(row, None, None, {'hidden': True})
@@ -1815,10 +2421,46 @@ class SacerApp(tk.Frame):
                 worksheet1.write('B100',
                                  f'- Nota 1.- En apego a la Resolución ST-2014-0257 referida en los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), se considera que un control individual a una estación RTV es pertinente cuando esta ha suspendido emisiones por más de 8 días.')
                 worksheet1.write('B101',
-                                 f'- Nota 2.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar sujeta a los resultados de las mediciones del siguiente mes.')
+                                 f'- Nota 2.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar surainbowa a los resultados de las mediciones del siguiente mes.')
 
                 for row1 in range(int(max_row1 + 1), int((max_row1 * 2) + 1)):
                     worksheet1.set_row(row1, None, None, {'hidden': True})
+
+                """Get the dimensions of the dataframe (FM broadcasting)."""
+                (max_row8, max_col8) = contar1.shape
+
+                """apply a conditional format to the required cell range."""
+                worksheet9.conditional_format(0, 1, int(max_row8), int(max_col8),
+                                              {'type': 'no_errors',
+                                               'format': format8})
+                worksheet9.autofilter(0, 0, 0, int(max_col8))
+
+                worksheet9.write('C1', 'Umbral (dBµV/m)')
+                worksheet9.write('C2', float(Umbral_FM))
+
+                worksheet9.conditional_format('C1:C2', {'type': 'no_errors',
+                                                        'format': format8})
+                worksheet9.conditional_format('C1', {'type': 'no_errors',
+                                                     'format': format9})
+                worksheet9.insert_image('E1', 'image1.png')
+
+                """Get the dimensions of the dataframe (TV broadcasting)."""
+                (max_row9, max_col9) = contar2.shape
+
+                """apply a conditional format to the required cell range."""
+                worksheet10.conditional_format(0, 1, int(max_row9), int(max_col9),
+                                               {'type': 'no_errors',
+                                                'format': format8})
+                worksheet10.autofilter(0, 0, 0, int(max_col9))
+
+                worksheet10.write('C1', 'Umbral (dBµV/m)')
+                worksheet10.write('C2', float(Umbral_TV))
+
+                worksheet10.conditional_format('C1:C2', {'type': 'no_errors',
+                                                         'format': format8})
+                worksheet10.conditional_format('C1', {'type': 'no_errors',
+                                                      'format': format9})
+                worksheet10.insert_image('E1', 'image2.png')
 
                 if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
                     """Get the dimensions of the dataframe (AM broadcasting)."""
@@ -1894,10 +2536,28 @@ class SacerApp(tk.Frame):
                     worksheet6.write('B140',
                                      '- Nota 2.- Las mediciones de Ancho de Banda obtenidas con el SACER son únicamente referenciales. La Unión Internacional de Telecomunicaciones – UIT, a través del Manual COMPROBACIÓN TÉCNICA DEL ESPECTRO RADIOELÉCTRICO (numeral 4.5.3) define las condiciones que deben tenerse en cuenta al medir la anchura de banda, señalando: “(…) a causa de las imprecisiones debidas a las razones expuestas, estas mediciones a distancia sólo son útiles a título indicativo. Cuando se requiera una mayor precisión, es conveniente que las mediciones se realicen en las inmediaciones del transmisor.”.')
                     worksheet6.write('B141',
-                                     f'- Nota 3.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar sujeta a los resultados de las mediciones del siguiente mes.')
+                                     f'- Nota 3.- De acuerdo a los numerales 5.2.4 y 5.2.5 de los LINEAMIENTOS PARA EL CONTROL Y MONITOREO DE PARÁMETROS TÉCNICOS RTV CON EL SACER (CCDE-01, PACT-{Year2}), para cada observación detectada que contenga datos inconsistentes que no se encuentren dentro del rango autorizado, dependiendo del caso y de los resultados, corresponde programar una verificación en sitio. Dicha programación puede estar surainbowa a los resultados de las mediciones del siguiente mes.')
 
                     for row2 in range(int((max_row7 * 2) + 1), int((max_row7 * 3) + 1)):
                         worksheet6.set_row(row2, None, None, {'hidden': True})
+
+                    """Get the dimensions of the dataframe (AM broadcasting)."""
+                    (max_row10, max_col10) = contar3.shape
+
+                    """apply a conditional format to the required cell range."""
+                    worksheet11.conditional_format(0, 1, int(max_row10), int(max_col10),
+                                                   {'type': 'no_errors',
+                                                    'format': format8})
+                    worksheet11.autofilter(0, 0, 0, int(max_col10))
+
+                    worksheet11.write('C1', 'Umbral (dBµV/m)')
+                    worksheet11.write('C2', float(Umbral_AM))
+
+                    worksheet11.conditional_format('C1:C2', {'type': 'no_errors',
+                                                             'format': format8})
+                    worksheet11.conditional_format('C1', {'type': 'no_errors',
+                                                          'format': format9})
+                    worksheet11.insert_image('E1', 'image3.png')
 
                 if Year1 == Year2 and Mes_inicio == Mes_fin:
                     """Get the dimensions of the dataframe (FM broadcasting)."""
@@ -1943,6 +2603,12 @@ class SacerApp(tk.Frame):
             """Rename the file"""
             os.rename(f'{download_route}/{old_name}',
                       f'{download_route}/{new_name}')
+
+            """Remove image files"""
+            os.remove('image1.png')
+            os.remove('image2.png')
+            if Ciudad == 'Quito' or Ciudad == 'Guayaquil' or Ciudad == 'Cuenca':
+                os.remove('image3.png')
 
         elif Ocupacion == True and AM_Reporte_individual == False and FM_Reporte_individual == False and TV_Reporte_individual == False:
             """REPORTE OCUPACIÓN"""
@@ -2034,7 +2700,7 @@ class SacerApp(tk.Frame):
 
             # Second plot: Heatmap of Level over Time by Frequency
             heatmap_data1 = df19.pivot_table(values='level', index='tiempo', columns='freq').sort_index(ascending=False)
-            sns.heatmap(heatmap_data1, cmap='viridis', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+            sns.heatmap(heatmap_data1, cmap='rainbow', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
             # Set the x-ticks and labels for the heatmap
             axes['heatmap'].set_xticks(mid_positions)
             axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
@@ -2108,7 +2774,7 @@ class SacerApp(tk.Frame):
 
             # Second plot: Heatmap of Level over Time by Frequency
             heatmap_data2 = df20.pivot_table(values='level', index='tiempo', columns='freq').sort_index(ascending=False)
-            sns.heatmap(heatmap_data2, cmap='viridis', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+            sns.heatmap(heatmap_data2, cmap='rainbow', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
             # Set the x-ticks and labels for the heatmap
             axes['heatmap'].set_xticks(mid_positions)
             axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
@@ -2184,7 +2850,7 @@ class SacerApp(tk.Frame):
                 # Second plot: Heatmap of Level over Time by Frequency
                 heatmap_data2 = df21.pivot_table(values='level', index='tiempo', columns='freq').sort_index(
                     ascending=False)
-                sns.heatmap(heatmap_data2, cmap='viridis', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
+                sns.heatmap(heatmap_data2, cmap='rainbow', cbar_kws={'label': 'Level (dBµV/m)'}, ax=axes['heatmap'])
                 # Set the x-ticks and labels for the heatmap
                 axes['heatmap'].set_xticks(mid_positions)
                 axes['heatmap'].set_xticklabels(freq_values, rotation=90, fontsize=8)
